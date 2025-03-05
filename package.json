@@ -2,6 +2,7 @@
   "name": "ai-lpr",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@8.15.4",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "tsx lib/db/migrate && next build",
@@ -112,6 +113,7 @@
     "eslint-config-next": "15.2.2-canary.0",
     "tailwindcss": "^4",
     "tsx": "^4.19.3",
+    "turbo": "^2.4.4",
     "typescript": "^5"
   }
 }
