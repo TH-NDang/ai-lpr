@@ -260,15 +260,17 @@ export function DataTableFilterCommand<TSchema extends z.AnyZodObject>({
                           e.stopPropagation();
                         }}
                         onSelect={(value) => {
-                          setInputValue((prev) =>
-                            replaceInputByFieldType({
+                          setInputValue((prev) => {
+                            const replaced = replaceInputByFieldType({
                               prev,
                               currentWord,
                               optionValue,
                               value,
                               field,
-                            })
-                          );
+                            });
+                            // Return original value if replacement returns undefined
+                            return replaced ?? prev;
+                          });
                           setCurrentWord("");
                         }}
                       >

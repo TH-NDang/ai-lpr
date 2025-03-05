@@ -39,7 +39,7 @@ export const columns: ColumnDef<ColumnSchema>[] = [
     },
     enableHiding: false,
     enableResizing: false,
-    filterFn: "arrSome",
+    filterFn: "equals",
     size: 27,
     minSize: 27,
     maxSize: 27,
@@ -59,7 +59,14 @@ export const columns: ColumnDef<ColumnSchema>[] = [
       const date = new Date(row.getValue("date"));
       return <HoverCardTimestamp date={date} />;
     },
-    filterFn: "inDateRange",
+    filterFn: (row, columnId, filterValue) => {
+      const date = row.getValue(columnId) as Date;
+      const [start, end] = filterValue;
+      if (start && end) {
+        return date >= start && date <= end;
+      }
+      return true;
+    },
     enableResizing: false,
     size: 200,
     minSize: 200,
@@ -102,7 +109,10 @@ export const columns: ColumnDef<ColumnSchema>[] = [
       }
       return <div className="text-muted-foreground">{`${value}`}</div>;
     },
-    filterFn: "arrSome",
+    filterFn: (row, columnId, filterValue) => {
+      const value = row.getValue(columnId) as number;
+      return filterValue.includes(value);
+    },
     enableResizing: false,
     size: 60,
     minSize: 60,

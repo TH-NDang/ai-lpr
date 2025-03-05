@@ -1,11 +1,14 @@
 import type { Column } from "@tanstack/react-table";
 import { ChevronDown, ChevronUp } from "lucide-react";
 
-import { Button, type ButtonProps } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import type { VariantProps } from "class-variance-authority";
 
 import { cn } from "@/lib/utils";
 
-interface DataTableColumnHeaderProps<TData, TValue> extends ButtonProps {
+interface DataTableColumnHeaderProps<TData, TValue>
+  extends React.ComponentProps<"button">,
+    VariantProps<typeof buttonVariants> {
   column: Column<TData, TValue>;
   title: string;
 }

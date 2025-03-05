@@ -36,7 +36,8 @@ import { Slot, type SlotProps } from "@radix-ui/react-slot";
 
 import { composeRefs } from "@/lib/table/compose-refs";
 import { cn } from "@/lib/utils";
-import { Button, type ButtonProps } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import type { VariantProps } from "class-variance-authority";
 import { createPortal } from "react-dom";
 
 const orientationConfig = {
@@ -320,9 +321,10 @@ const SortableItem = React.forwardRef<HTMLDivElement, SortableItemProps>(
 );
 SortableItem.displayName = "SortableItem";
 
-interface SortableDragHandleProps extends ButtonProps {
-  withHandle?: boolean;
-}
+type SortableDragHandleProps = React.ComponentProps<"button"> &
+  VariantProps<typeof buttonVariants> & {
+    withHandle?: boolean;
+  };
 
 const SortableDragHandle = React.forwardRef<
   HTMLButtonElement,
