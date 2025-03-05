@@ -57,9 +57,9 @@ export const vote = pgTable(
     isUpvoted: boolean('isUpvoted').notNull(),
   },
   (table) => {
-    return {
-      pk: primaryKey({ columns: [table.chatId, table.messageId] }),
-    };
+    return [
+      primaryKey({ columns: [table.chatId, table.messageId] }),
+    ];
   },
 );
 
@@ -79,11 +79,7 @@ export const document = pgTable(
       .notNull()
       .references(() => user.id),
   },
-  (table) => {
-    return {
-      pk: primaryKey({ columns: [table.id, table.createdAt] }),
-    };
-  }
+  (table) => [primaryKey({ columns: [table.id, table.createdAt] })]
 );
 
 export type Document = InferSelectModel<typeof document>;
@@ -103,13 +99,13 @@ export const suggestion = pgTable(
       .references(() => user.id),
     createdAt: timestamp('createdAt').notNull(),
   },
-  (table) => ({
-    pk: primaryKey({ columns: [table.id] }),
-    documentRef: foreignKey({
+  (table) => [
+    primaryKey({ columns: [table.id] }),
+    foreignKey({
       columns: [table.documentId, table.documentCreatedAt],
       foreignColumns: [document.id, document.createdAt],
     }),
-  }),
+  ],
 );
 
 export type Suggestion = InferSelectModel<typeof suggestion>;

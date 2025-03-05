@@ -1,1 +1,0 @@
-ALTER TABLE "Document" ALTER COLUMN "text" SET DEFAULT 'sheet';
