@@ -38,6 +38,8 @@
     "@radix-ui/react-separator": "^1.1.2",
     "@radix-ui/react-slot": "^1.1.2",
     "@radix-ui/react-tooltip": "^1.1.8",
+    "@tanstack/react-query": "^5.67.1",
+    "@tanstack/react-query-devtools": "^5.67.1",
     "@vercel/blob": "^0.27.2",
     "ai": "^4.1.50",
     "bcrypt-ts": "^6.0.0",
