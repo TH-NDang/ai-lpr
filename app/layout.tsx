@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "@/styles/globals.css";
-import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { Providers } from "@/components/providers";
 
 export const metadata: Metadata = {
   title: "AI LPR",
@@ -54,18 +54,11 @@ export default async function RootLayout({
         />
       </head>
 
-      <body
-        className={`antialiased`}
-      >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
+      <body className={`antialiased`}>
+        <Providers>
           <Toaster position="top-center" />
           {children}
-        </ThemeProvider>
+        </Providers>
       </body>
     </html>
   );

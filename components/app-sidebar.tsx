@@ -18,6 +18,21 @@ import {
 } from "@/components/ui/sidebar";
 import Link from "next/link";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import { NavMain } from "./nav-main";
+import { Home, Search } from "lucide-react";
+
+const navMain = [
+    {
+      title: "Search",
+      url: "#",
+      icon: Search,
+    },
+    {
+      title: "Home",
+      url: "/overview",
+      icon: Home,
+  },
+]
 
 export function AppSidebar({ user }: { user: User | undefined }) {
   const router = useRouter();
@@ -58,6 +73,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
             </Tooltip>
           </div>
         </SidebarMenu>
+        <NavMain items={navMain} />
       </SidebarHeader>
       <SidebarContent>
         <SidebarHistory user={user} />
