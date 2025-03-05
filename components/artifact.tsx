@@ -28,10 +28,9 @@ import { useSidebar } from './ui/sidebar';
 import { useArtifact } from '@/hooks/use-artifact';
 import { sheetArtifact } from '@/artifacts/sheet/client';
 import equal from 'fast-deep-equal';
+import { textArtifact } from '@/artifacts/text/client';
 
-export const artifactDefinitions = [
-  sheetArtifact,
-];
+export const artifactDefinitions = [textArtifact, sheetArtifact];
 export type ArtifactKind = (typeof artifactDefinitions)[number]['kind'];
 
 export interface UIArtifact {
