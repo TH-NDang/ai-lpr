@@ -1,8 +1,7 @@
-import type { ColumnSchema } from "./schema";
+import type { ColumnSchema, FacetMetadataSchema } from "./schema";
 import { type SearchParamsType, searchParamsSerializer } from "./search-params";
 import { infiniteQueryOptions, keepPreviousData } from "@tanstack/react-query";
 import type { Percentile } from "@/lib/request/percentile";
-import type { FacetMetadataSchema } from "./schema";
 
 export type LogsMeta = {
   currentPercentiles: Record<Percentile, number>;

@@ -1,7 +1,6 @@
-import { Braces } from "lucide-react";
-
+import { Braces, TableProperties } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TableProperties } from "lucide-react";
+
 import { KeyValueTable } from "./key-value-table";
 import CopyToClipboardContainer from "@/components/data-table/custom/copy-to-clipboard-container";
 

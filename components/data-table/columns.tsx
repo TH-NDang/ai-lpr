@@ -20,7 +20,7 @@ import {
 import { DataTableColumnHeader } from "@/components/data-table/data-table-column-header";
 import { TextWithTooltip } from "@/components/data-table/custom/text-with-tooltip";
 import { HoverCardTimestamp } from "./hover-card-timestamp";
-import { LEVELS } from "./constants/levels";
+import type { LEVELS } from "./constants/levels";
 import { getLevelColor } from "@/lib/request/level";
 
 export const columns: ColumnDef<ColumnSchema>[] = [

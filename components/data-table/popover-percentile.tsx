@@ -1,10 +1,10 @@
 "use client";
-import { ColumnSchema } from "../../lib/table/schema";
+import type { ColumnSchema } from "../../lib/table/schema";
 import { FunctionSquare } from "lucide-react";
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { formatCompactNumber, formatMilliseconds } from "@/lib/table/format";
-import { Percentile, getPercentileColor } from "@/lib/request/percentile";
+import { type Percentile, getPercentileColor } from "@/lib/request/percentile";
 import {
   Popover,
   PopoverContent,
@@ -24,9 +24,9 @@ export function PopoverPercentile({
   filterRows,
   className,
 }: PopoverPercentileProps) {
-  let percentileArray = percentiles
+  const percentileArray = percentiles
     ? Object.entries(percentiles).map(([percentile, latency]) => [
-        parseInt(percentile),
+        Number.parseInt(percentile),
         latency,
       ])
     : [];

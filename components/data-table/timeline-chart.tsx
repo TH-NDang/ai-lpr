@@ -3,7 +3,7 @@
 import { Bar, BarChart, CartesianGrid, ReferenceArea, XAxis } from "recharts";
 
 import {
-  ChartConfig,
+  type ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
@@ -12,9 +12,9 @@ import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { CategoricalChartFunc } from "recharts/types/chart/generateCategoricalChart";
-import { ColumnFiltersColumn } from "@tanstack/react-table";
+import type { ColumnFiltersColumn } from "@tanstack/react-table";
 import { getLevelLabel } from "@/lib/request/level";
-import { LEVELS } from "./constants/levels";
+import type { LEVELS } from "./constants/levels";
 
 export const description = "A stacked bar chart";
 

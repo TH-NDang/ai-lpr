@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { format } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 import type { DateRange } from "react-day-picker";
 
@@ -28,7 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useDebounce } from "@/hooks/use-debounce";
 import type { DatePreset } from "@/components/data-table/types";
-import { addDays, addHours, endOfDay, startOfDay } from "date-fns";
+import { addDays, addHours, endOfDay, startOfDay, format } from "date-fns";
 
 export const defaultPresets = [
   {
@@ -200,9 +199,13 @@ function DatePresetsSelect({
   onSelect: (date: DateRange | undefined) => void;
   presets: DatePreset[];
 }) {
-  function findPreset(from?: Date, to?: Date) {
-    return presets.find((p) => p.from === from && p.to === to)?.shortcut;
-  }
+  const findPreset = React.useCallback(
+    (from?: Date, to?: Date) => {
+      return presets.find((p) => p.from === from && p.to === to)?.shortcut;
+    },
+    [presets]
+  );
+
   const [value, setValue] = React.useState<string | undefined>(
     findPreset(selected?.from, selected?.to)
   );
@@ -211,7 +214,7 @@ function DatePresetsSelect({
     const preset = findPreset(selected?.from, selected?.to);
     if (preset === value) return;
     setValue(preset);
-  }, [selected, presets]);
+  }, [selected, findPreset, value]);
 
   return (
     <Select

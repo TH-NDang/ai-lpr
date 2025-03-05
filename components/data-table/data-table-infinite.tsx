@@ -32,7 +32,7 @@ import {
 } from "@/components/data-table/custom/table";
 import { DataTableFilterControls } from "@/components/data-table/data-table-filter-controls";
 import { DataTableFilterCommand } from "@/components/data-table/data-table-filter-command";
-import { ColumnSchema, columnFilterSchema } from "../../lib/table/schema";
+import { type ColumnSchema, columnFilterSchema } from "../../lib/table/schema";
 import type {
   DataTableFilterField,
   SheetField,
@@ -42,13 +42,12 @@ import { cn } from "@/lib/utils";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useQueryStates } from "nuqs";
 import { searchParamsParser } from "../../lib/table/search-params";
-import { type FetchNextPageOptions } from "@tanstack/react-query";
+import type { FetchNextPageOptions } from "@tanstack/react-query";
 import { LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatCompactNumber } from "@/lib/table/format";
 import { inDateRange, arrSome } from "@/lib/table/filterfns";
 import { DataTableSheetDetails } from "@/components/data-table/data-table-sheet/data-table-sheet-details";
-import { SocialsFooter } from "./socials-footer";
 import { TimelineChart } from "./timeline-chart";
 import { useHotKey } from "@/hooks/use-hot-key";
 import { DataTableResetButton } from "@/components/data-table/data-table-reset-button";
@@ -236,11 +235,16 @@ export function DataTableInfinite<TData, TValue, TMeta>({
    * we will calculate all column sizes at once at the root table level in a useMemo
    * and pass the column sizes down as CSS variables to the <table> element.
    */
+  const columnSizingInfo = table.getState().columnSizingInfo;
+  const columnSizing = table.getState().columnSizing;
+  const tableColumnVisibility = table.getState().columnVisibility;
+
   const columnSizeVars = React.useMemo(() => {
     const headers = table.getFlatHeaders();
     const colSizes: { [key: string]: string } = {};
     for (let i = 0; i < headers.length; i++) {
-      const header = headers[i]!;
+      const header = headers[i];
+      if (!header) continue;
       // REMINDER: replace "." with "-" to avoid invalid CSS variable name (e.g. "timing.dns" -> "timing-dns")
       colSizes[
         `--header-${header.id.replace(".", "-")}-size`
@@ -250,11 +254,7 @@ export function DataTableInfinite<TData, TValue, TMeta>({
       ] = `${header.column.getSize()}px`;
     }
     return colSizes;
-  }, [
-    table.getState().columnSizingInfo,
-    table.getState().columnSizing,
-    table.getState().columnVisibility,
-  ]);
+  }, [table]);
 
   useHotKey(() => {
     setColumnOrder([]);
@@ -372,6 +372,9 @@ export function DataTableInfinite<TData, TValue, TMeta>({
                               )}
                           {header.column.getCanResize() && (
                             <div
+                              role="separator"
+                              aria-orientation="vertical"
+                              aria-label="Resize column"
                               onDoubleClick={() => header.column.resetSize()}
                               onMouseDown={header.getResizeHandler()}
                               onTouchStart={header.getResizeHandler()}

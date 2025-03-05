@@ -10,7 +10,6 @@ import type {
 } from "../../../../lib/table/schema";
 import type { SearchParamsType } from "../../../../lib/table/search-params";
 import {
-  isArrayOfBooleans,
   isArrayOfDates,
   isArrayOfNumbers,
 } from "@/lib/table/is-array";
@@ -18,8 +17,8 @@ import {
   calculatePercentile,
   calculateSpecificPercentile,
 } from "@/lib/request/percentile";
-import { REGIONS } from "@/constants/region";
-import { LEVELS } from "@/constants/levels";
+import type { REGIONS } from "@/components/data-table/constants/region";
+import type { LEVELS } from "@/components/data-table/constants/levels";
 
 export const sliderFilterValues = [
   "latency",

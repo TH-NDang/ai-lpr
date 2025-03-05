@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { type ColumnSchema } from "../../lib/table/schema";
+import type { ColumnSchema } from "../../lib/table/schema";
 import type {
   DataTableFilterField,
   Option,

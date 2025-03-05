@@ -1,17 +1,19 @@
 "use client";
 
+import type { ComponentPropsWithoutRef } from "react";
+
 import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
+import { Check, Copy } from "lucide-react";
+
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
 import { cn } from "@/lib/utils";
+
 import { UTCDate } from "@date-fns/utc";
 import { format, formatDistanceToNowStrict } from "date-fns";
-import { Copy } from "lucide-react";
-import { Check } from "lucide-react";
-import type { ComponentPropsWithoutRef } from "react";
 
 type HoverCardContentProps = ComponentPropsWithoutRef<typeof HoverCardContent>;
 
@@ -66,12 +68,14 @@ function Row({ value, label }: { value: string; label: string }) {
   const { copy, isCopied } = useCopyToClipboard();
 
   return (
-    <div
-      className="group flex gap-4 text-sm justify-between items-center"
+    <button
+      type="button"
+      className="group flex w-full gap-4 text-sm justify-between items-center text-left"
       onClick={(e) => {
         e.stopPropagation();
         copy(value);
       }}
+      aria-label={`Copy ${label} value: ${value}`}
     >
       <dt className="text-muted-foreground">{label}</dt>
       <dd className="font-mono truncate flex items-center gap-1">
@@ -84,6 +88,6 @@ function Row({ value, label }: { value: string; label: string }) {
         </span>
         {value}
       </dd>
-    </div>
+    </button>
   );
 }

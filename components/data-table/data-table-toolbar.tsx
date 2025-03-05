@@ -34,7 +34,7 @@ export function DataTableToolbar() {
       total: table.getCoreRowModel().rows.length,
       filtered: table.getFilteredRowModel().rows.length,
     }),
-    [isLoading, columnFilters]
+    [table]
   );
 
   return (

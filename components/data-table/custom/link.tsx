@@ -1,15 +1,15 @@
 import NextLink, { type LinkProps as NextLinkProps } from "next/link";
-import React from "react";
 import { cn } from "@/lib/utils";
 import { ArrowUpRight } from "lucide-react";
+import { forwardRef, type ReactNode } from "react";
 
 export interface LinkProps extends NextLinkProps {
   className?: string;
-  children?: React.ReactNode;
+  children?: ReactNode;
   hideArrow?: boolean;
 }
 
-const Link = React.forwardRef<HTMLAnchorElement, LinkProps>(
+const Link = forwardRef<HTMLAnchorElement, LinkProps>(
   ({ className, href, children, hideArrow, ...props }, ref) => {
     const isInternal =
       href?.toString().startsWith("/") || href?.toString().startsWith("#");

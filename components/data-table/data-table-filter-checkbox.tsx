@@ -48,7 +48,7 @@ export function DataTableFilterCheckbox<TData>({
       <div className="grid rounded-lg border border-border divide-y">
         {Array.from({ length: 3 }).map((_, index) => (
           <div
-            key={index}
+            key={`${Math.random().toString(36).slice(2, 9)}`}
             className="flex gap-2 items-center justify-between px-2 py-2.5"
           >
             <Skeleton className="h-4 w-4 rounded-sm" />

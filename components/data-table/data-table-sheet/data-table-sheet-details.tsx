@@ -44,7 +44,7 @@ export function DataTableSheetDetails<TData>({
     return table
       .getCoreRowModel()
       .flatRows.find((row) => row.id === selectedRowKey);
-  }, [selectedRowKey, isLoading]);
+  }, [selectedRowKey, isLoading, table]);
 
   const index = table
     .getCoreRowModel()
@@ -52,21 +52,21 @@ export function DataTableSheetDetails<TData>({
 
   const nextId = React.useMemo(
     () => table.getCoreRowModel().flatRows[index + 1]?.id,
-    [index, isLoading]
+    [index, table]
   );
 
   const prevId = React.useMemo(
     () => table.getCoreRowModel().flatRows[index - 1]?.id,
-    [index, isLoading]
+    [index, table]
   );
 
   const onPrev = React.useCallback(() => {
     if (prevId) table.setRowSelection({ [prevId]: true });
-  }, [prevId, isLoading]);
+  }, [prevId, table]);
 
   const onNext = React.useCallback(() => {
     if (nextId) table.setRowSelection({ [nextId]: true });
-  }, [nextId, isLoading]);
+  }, [nextId, table]);
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {

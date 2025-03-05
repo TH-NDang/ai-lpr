@@ -28,13 +28,13 @@ export function DataTableFilterInput<TData>({
     const newValue = debouncedInput?.trim() === "" ? null : debouncedInput;
     if (debouncedInput === null) return;
     column?.setFilterValue(newValue);
-  }, [debouncedInput]);
+  }, [debouncedInput, column]);
 
   useEffect(() => {
     if (debouncedInput?.trim() !== filters) {
       setInput(filters);
     }
-  }, [filters]);
+  }, [filters, debouncedInput]);
 
   return (
     <div className="grid w-full gap-1.5">

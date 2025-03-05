@@ -1,4 +1,4 @@
-import { TimingPhase, timingPhases } from "@/lib/request/timing";
+import { type TimingPhase, timingPhases } from "@/lib/request/timing";
 
 import {
   getTimingColor,

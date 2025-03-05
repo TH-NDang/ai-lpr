@@ -5,8 +5,7 @@ import {
   TableRow,
 } from "@/components/data-table/custom/table";
 import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
-import { Check } from "lucide-react";
-import { Copy } from "lucide-react";
+import { Check, Copy } from "lucide-react";
 
 interface KeyValueTableProps {
   data: Record<string, string>;

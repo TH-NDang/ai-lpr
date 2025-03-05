@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { FilterIcon } from "lucide-react";
 import { DataTableFilterControls } from "./data-table-filter-controls";
 import { useHotKey } from "@/hooks/use-hot-key";
-import React from "react";
 import {
   Tooltip,
   TooltipContent,
@@ -22,9 +21,10 @@ import {
 } from "@/components/ui/tooltip";
 import { Kbd } from "@/components/data-table/custom/kbd";
 import { useMediaQuery } from "@/hooks/use-media-query";
+import { useRef } from "react";
 
 export function DataTableFilterControlsDrawer() {
-  const triggerButtonRef = React.useRef<HTMLButtonElement>(null);
+  const triggerButtonRef = useRef<HTMLButtonElement>(null);
   const isMobile = useMediaQuery("(max-width: 640px)");
 
   useHotKey(() => {

@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import type { NextRequest } from "next/server";
 import { mock } from "./mock";
 import { searchParamsCache } from "@/lib/table/search-params";
 import {
@@ -15,7 +15,7 @@ import type {
   InfiniteQueryMeta,
   LogsMeta,
 } from "@/lib/table/query-options";
-import { ColumnSchema } from "@/lib/table/schema";
+import type { ColumnSchema } from "@/lib/table/schema";
 
 export async function GET(req: NextRequest) {
   // TODO: we could use a POST request to avoid this

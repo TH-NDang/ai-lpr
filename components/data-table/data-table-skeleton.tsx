@@ -37,8 +37,11 @@ export function DataTableSkeleton({ rows = 10 }: DataTableSkeletonProps) {
         </TableRow>
       </TableHeader>
       <TableBody>
-        {new Array(rows).fill(0).map((_, i) => (
-          <TableRow key={i} className="hover:bg-transparent">
+        {Array.from({ length: rows }, (_, i) => (
+          <TableRow
+            key={`skeleton-${crypto.randomUUID()}`}
+            className="hover:bg-transparent"
+          >
             <TableCell>
               <Skeleton className="my-1.5 h-4 w-full max-w-[10rem]" />
             </TableCell>

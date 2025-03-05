@@ -1,4 +1,4 @@
-import { LEVELS } from "@/constants/levels";
+import type { LEVELS } from "@/components/data-table/constants/levels";
 import { cn } from "../utils";
 
 export function getLevelColor(

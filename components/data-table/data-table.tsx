@@ -1,4 +1,4 @@
-import { DataTableFilterField } from "@/components/data-table/types";
+import type { DataTableFilterField } from "@/components/data-table/types";
 import type {
   ColumnDef,
   ColumnFiltersState,
@@ -46,23 +46,7 @@ export function DataTableProvider<TData, TValue>({
 }: DataTableContextType<TData, TValue> & {
   children: React.ReactNode;
 }) {
-  const value = useMemo(
-    () => ({ ...props }),
-    [
-      props.columnFilters,
-      props.sorting,
-      props.rowSelection,
-      props.columnOrder,
-      props.columnVisibility,
-      props.table,
-      props.filterFields,
-      props.columns,
-      props.enableColumnOrdering,
-      props.isLoading,
-      props.getFacetedUniqueValues,
-      props.getFacetedMinMaxValues,
-    ]
-  );
+  const value = useMemo(() => ({ ...props }), [props]);
 
   return (
     <DataTableContext.Provider value={value}>

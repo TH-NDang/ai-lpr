@@ -1,35 +1,26 @@
-import { DropdownMenu } from "@/components/ui/dropdown-menu";
-
-import { Copy } from "lucide-react";
-
+import { cn } from "@/lib/utils";
+import type { Table } from "@tanstack/react-table";
+import type { DataTableFilterField } from "../types";
+import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
+import { startOfDay, startOfHour, endOfDay, endOfHour } from "date-fns";
 import {
+  DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-
-import {
   DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-import { DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
+  CalendarClock,
+  CalendarDays,
   CalendarSearch,
   ChevronLeft,
   ChevronRight,
+  Copy,
   Equal,
   Search,
 } from "lucide-react";
-import { CalendarDays } from "lucide-react";
-import { startOfDay } from "date-fns";
-import { startOfHour } from "date-fns";
-import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
-import { endOfDay } from "date-fns";
-import { Table } from "@tanstack/react-table";
-import { CalendarClock } from "lucide-react";
-import { endOfHour } from "date-fns";
-import { cn } from "@/lib/utils";
-import { DataTableFilterField } from "../types";
 
 interface DataTableSheetRowActionProps<
   TData,
@@ -92,9 +83,7 @@ export function DataTableSheetRowAction<
       case "slider":
         return (
           <DropdownMenuGroup>
-            <DropdownMenuItem
-              onClick={() => column?.setFilterValue([0, value])}
-            >
+            <DropdownMenuItem onClick={() => column?.setFilterValue([0, value])}>
               {/* FIXME: change icon as it is not clear */}
               <ChevronLeft />
               Less or equal than
@@ -112,7 +101,7 @@ export function DataTableSheetRowAction<
             </DropdownMenuItem>
           </DropdownMenuGroup>
         );
-      case "timerange":
+      case "timerange": {
         const date = new Date(value);
         return (
           <DropdownMenuGroup>
@@ -142,6 +131,7 @@ export function DataTableSheetRowAction<
             </DropdownMenuItem>
           </DropdownMenuGroup>
         );
+      }
       default:
         return null;
     }
@@ -176,9 +166,7 @@ export function DataTableSheetRowAction<
       <DropdownMenuContent align="start" side="left">
         {renderOptions()}
         <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onClick={() => copy(String(value), { timeout: 1000 })}
-        >
+        <DropdownMenuItem onClick={() => copy(String(value), { timeout: 1000 })}>
           <Copy />
           Copy value
         </DropdownMenuItem>

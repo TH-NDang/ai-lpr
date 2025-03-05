@@ -2,9 +2,9 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
-import { Table } from "@tanstack/react-table";
+import type { Table } from "@tanstack/react-table";
 import { DataTableSheetRowAction } from "./data-table-sheet-row-action";
-import { DataTableFilterField, SheetField } from "../types";
+import type { DataTableFilterField, SheetField } from "../types";
 import { SheetDetailsContentSkeleton } from "./data-table-sheet-skeleton";
 
 interface DataTableSheetContentProps<TData, TMeta>

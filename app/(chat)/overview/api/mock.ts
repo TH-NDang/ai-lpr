@@ -1,7 +1,7 @@
-import { METHODS } from "@/constants/method";
-import { ColumnSchema } from "../../../../lib/table/schema";
+import type { METHODS } from "@/components/data-table/constants/method";
+import type { ColumnSchema } from "../../../../lib/table/schema";
 import { subMinutes } from "date-fns";
-import { REGIONS } from "@/constants/region";
+import type { REGIONS } from "@/components/data-table/constants/region";
 
 const DAYS = 20;
 
@@ -150,7 +150,7 @@ export function createMockData({
       status: statusCode.ams,
       date,
       headers,
-      message: 500 === statusCode.ams ? getMessage() : undefined,
+      message: statusCode.ams === 500 ? getMessage() : undefined,
       ...getRandomTiming(latency.ams),
       ...requestObject,
     },
@@ -162,7 +162,7 @@ export function createMockData({
       status: statusCode.iad,
       date,
       headers,
-      message: 500 === statusCode.iad ? getMessage() : undefined,
+      message: statusCode.iad === 500 ? getMessage() : undefined,
       ...getRandomTiming(latency.iad),
       ...requestObject,
     },
@@ -174,7 +174,7 @@ export function createMockData({
       status: statusCode.gru,
       date,
       headers,
-      message: 500 === statusCode.gru ? getMessage() : undefined,
+      message: statusCode.gru === 500 ? getMessage() : undefined,
       ...getRandomTiming(latency.gru),
       ...requestObject,
     },
@@ -186,7 +186,7 @@ export function createMockData({
       status: statusCode.syd,
       date,
       headers,
-      message: 500 === statusCode.syd ? getMessage() : undefined,
+      message: statusCode.syd === 500 ? getMessage() : undefined,
       ...getRandomTiming(latency.syd),
       ...requestObject,
     },
@@ -198,7 +198,7 @@ export function createMockData({
       status: statusCode.fra,
       date,
       headers,
-      message: 500 === statusCode.fra ? getMessage() : undefined,
+      message: statusCode.fra === 500 ? getMessage() : undefined,
       ...getRandomTiming(latency.fra),
       ...requestObject,
     },
@@ -210,7 +210,7 @@ export function createMockData({
       status: statusCode.hkg,
       date,
       headers,
-      message: 500 === statusCode.hkg ? getMessage() : undefined,
+      message: statusCode.hkg === 500 ? getMessage() : undefined,
       ...getRandomTiming(latency.hkg),
       ...requestObject,
     },
