@@ -48,6 +48,7 @@ export function MessageReasoning({
             onClick={() => {
               setIsExpanded(!isExpanded);
             }}
+            role="button"
           >
             <ChevronDownIcon />
           </div>
