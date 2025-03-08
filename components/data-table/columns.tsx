@@ -67,8 +67,8 @@ export const columns: ColumnDef<ColumnSchema>[] = [
       return true;
     },
     enableResizing: false,
-    size: 200,
-    minSize: 200,
+    size: 150,
+    minSize: 150,
     meta: {
       headerClassName:
         "w-[--header-date-size] max-w-[--header-date-size] min-w-[--header-date-size]",

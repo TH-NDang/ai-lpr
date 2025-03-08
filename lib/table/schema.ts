@@ -4,7 +4,6 @@ import {
   SLIDER_DELIMITER,
 } from "@/lib/table/delimiters";
 import { METHODS } from "../../components/data-table/constants/method";
-import { REGIONS } from "../../components/data-table/constants/region";
 import { z } from "zod";
 import { LEVELS } from "../../components/data-table/constants/levels";
 

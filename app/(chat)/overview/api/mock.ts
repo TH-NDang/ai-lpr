@@ -1,7 +1,6 @@
 import type { METHODS } from "@/components/data-table/constants/method";
 import type { ColumnSchema } from "../../../../lib/table/schema";
 import { subMinutes } from "date-fns";
-import type { REGIONS } from "@/components/data-table/constants/region";
 
 const DAYS = 20;
 

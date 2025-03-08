@@ -16,7 +16,6 @@ import {
   SLIDER_DELIMITER,
   SORT_DELIMITER,
 } from "@/lib/table/delimiters";
-import { REGIONS } from "@/components/data-table/constants/region";
 import { METHODS } from "@/components/data-table/constants/method";
 import { LEVELS } from "@/components/data-table/constants/levels";
 

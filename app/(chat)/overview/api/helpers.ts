@@ -17,7 +17,6 @@ import {
   calculatePercentile,
   calculateSpecificPercentile,
 } from "@/lib/request/percentile";
-import type { REGIONS } from "@/components/data-table/constants/region";
 import type { LEVELS } from "@/components/data-table/constants/levels";
 
 export const sliderFilterValues = [
