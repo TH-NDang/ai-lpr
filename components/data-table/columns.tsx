@@ -4,7 +4,6 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { Minus } from "lucide-react";
 import type { ColumnSchema } from "../../lib/table/schema";
 import { getStatusColor } from "@/lib/request/status-code";
-import { regions } from "./constants/region";
 import {
   getTimingColor,
   getTimingLabel,
@@ -139,36 +138,6 @@ export const columns: ColumnDef<ColumnSchema>[] = [
     },
   },
   {
-    accessorKey: "host",
-    header: "Host",
-    cell: ({ row }) => {
-      const value = row.getValue("host") as string;
-      return <TextWithTooltip text={value} />;
-    },
-    size: 125,
-    minSize: 125,
-    meta: {
-      cellClassName: "font-mono w-[--col-host-size] max-w-[--col-host-size]",
-      headerClassName: "min-w-[--header-host-size] w-[--header-host-size]",
-    },
-  },
-  {
-    accessorKey: "pathname",
-    header: "Pathname",
-    cell: ({ row }) => {
-      const value = row.getValue("pathname") as string;
-      return <TextWithTooltip text={value} />;
-    },
-    size: 130,
-    minSize: 130,
-    meta: {
-      cellClassName:
-        "font-mono w-[--col-pathname-size] max-w-[--col-pathname-size]",
-      headerClassName:
-        "min-w-[--header-pathname-size] w-[--header-pathname-size]",
-    },
-  },
-  {
     accessorKey: "latency",
     // TODO: check if we can right align the table header/cell (makes is easier to read)
     header: ({ column }) => (
@@ -187,43 +156,6 @@ export const columns: ColumnDef<ColumnSchema>[] = [
         "w-[--header-latency-size] max-w-[--header-latency-size] min-w-[--header-latency-size]",
       cellClassName:
         "font-mono w-[--col-latency-size] max-w-[--col-latency-size] min-w-[--col-latency-size]",
-    },
-  },
-  {
-    accessorKey: "regions",
-    header: "Region",
-    cell: ({ row }) => {
-      const value = row.getValue("regions");
-      if (Array.isArray(value)) {
-        if (value.length > 1) {
-          return <div className="text-muted-foreground">{value.join(", ")}</div>;
-        } else {
-          return (
-            <div className="whitespace-nowrap">
-              <span>{value}</span>{" "}
-              <span className="text-muted-foreground text-xs">
-                {`${regions[value[0]]}`}
-              </span>
-            </div>
-          );
-        }
-      }
-      if (typeof value === "string") {
-        return (
-          <div className="text-muted-foreground">{`${regions[value]}`}</div>
-        );
-      }
-      return <Minus className="h-4 w-4 text-muted-foreground/50" />;
-    },
-    filterFn: "arrIncludesSome",
-    enableResizing: false,
-    size: 163,
-    minSize: 163,
-    meta: {
-      headerClassName:
-        "w-[--header-regions-size] max-w-[--header-regions-size] min-w-[--header-regions-size]",
-      cellClassName:
-        "font-mono w-[--col-regions-size] max-w-[--col-regions-size] min-w-[--col-regions-size]",
     },
   },
   {

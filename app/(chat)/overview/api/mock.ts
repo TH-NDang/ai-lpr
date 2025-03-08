@@ -75,21 +75,15 @@ const apiPathnames = ["/v1/products", "/v1/orders", "/v1/customers"];
 
 function getRandomRequestObject(): {
   method: (typeof METHODS)[number];
-  host: string;
-  pathname: string;
 } {
   const rand = Math.random();
   if (rand < 0.5) {
     return {
       method: "POST",
-      host: "api.acme-shop.com",
-      pathname: apiPathnames[Math.floor(Math.random() * apiPathnames.length)],
     };
   } else {
     return {
       method: "GET",
-      host: "acme-shop.com",
-      pathname: shopPathnames[Math.floor(Math.random() * shopPathnames.length)],
     };
   }
 }
@@ -146,7 +140,6 @@ export function createMockData({
       uuid: crypto.randomUUID(),
       level: getLevel(statusCode.ams),
       latency: latency.ams,
-      regions: ["ams"],
       status: statusCode.ams,
       date,
       headers,
@@ -158,7 +151,6 @@ export function createMockData({
       uuid: crypto.randomUUID(),
       level: getLevel(statusCode.iad),
       latency: latency.iad,
-      regions: ["iad"],
       status: statusCode.iad,
       date,
       headers,
@@ -170,7 +162,6 @@ export function createMockData({
       uuid: crypto.randomUUID(),
       level: getLevel(statusCode.gru),
       latency: latency.gru,
-      regions: ["gru"],
       status: statusCode.gru,
       date,
       headers,
@@ -182,7 +173,6 @@ export function createMockData({
       uuid: crypto.randomUUID(),
       level: getLevel(statusCode.syd),
       latency: latency.syd,
-      regions: ["syd"],
       status: statusCode.syd,
       date,
       headers,
@@ -194,7 +184,6 @@ export function createMockData({
       uuid: crypto.randomUUID(),
       level: getLevel(statusCode.fra),
       latency: latency.fra,
-      regions: ["fra"],
       status: statusCode.fra,
       date,
       headers,
@@ -206,7 +195,6 @@ export function createMockData({
       uuid: crypto.randomUUID(),
       level: getLevel(statusCode.hkg),
       latency: latency.hkg,
-      regions: ["hkg"],
       status: statusCode.hkg,
       date,
       headers,

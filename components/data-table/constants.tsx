@@ -9,7 +9,6 @@ import type {
 } from "@/components/data-table/types";
 import { getStatusColor } from "@/lib/request/status-code";
 import { METHODS } from "./constants/method";
-import { flags, regions, REGIONS } from "./constants/region";
 import { LEVELS } from "./constants/levels";
 import { getLevelColor, getLevelLabel } from "@/lib/request/level";
 import { format } from "date-fns";
@@ -60,16 +59,6 @@ export const filterFields = [
     },
   },
   {
-    label: "Host",
-    value: "host",
-    type: "input",
-  },
-  {
-    label: "Pathname",
-    value: "pathname",
-    type: "input",
-  },
-  {
     label: "Status Code",
     value: "status",
     type: "checkbox",
@@ -95,15 +84,6 @@ export const filterFields = [
     value: "method",
     type: "checkbox",
     options: METHODS.map((region) => ({ label: region, value: region })),
-    component: (props: Option) => {
-      return <span className="font-mono">{props.value}</span>;
-    },
-  },
-  {
-    label: "Regions",
-    value: "regions",
-    type: "checkbox",
-    options: REGIONS.map((region) => ({ label: region, value: region })),
     component: (props: Option) => {
       return <span className="font-mono">{props.value}</span>;
     },
@@ -187,32 +167,6 @@ export const sheetFields = [
       return <span className="font-mono">{props.method}</span>;
     },
     skeletonClassName: "w-10",
-  },
-  {
-    id: "host",
-    label: "Host",
-    type: "input",
-    skeletonClassName: "w-24",
-  },
-  {
-    id: "pathname",
-    label: "Pathname",
-    type: "input",
-    skeletonClassName: "w-56",
-  },
-  {
-    id: "regions",
-    label: "Regions",
-    type: "checkbox",
-    skeletonClassName: "w-12",
-    component: (props) => (
-      <>
-        <span className="text-muted-foreground text-xs">
-          {flags[props.regions[0]]} {regions[props.regions[0]]}
-        </span>{" "}
-        {props.regions[0]}
-      </>
-    ),
   },
   {
     id: "latency",

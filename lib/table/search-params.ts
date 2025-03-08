@@ -43,10 +43,7 @@ export const searchParamsParser = {
   "timing.ttfb": parseAsArrayOf(parseAsInteger, SLIDER_DELIMITER),
   "timing.transfer": parseAsArrayOf(parseAsInteger, SLIDER_DELIMITER),
   status: parseAsArrayOf(parseAsInteger, SLIDER_DELIMITER),
-  regions: parseAsArrayOf(parseAsStringLiteral(REGIONS), ARRAY_DELIMITER),
   method: parseAsArrayOf(parseAsStringLiteral(METHODS), ARRAY_DELIMITER),
-  host: parseAsString,
-  pathname: parseAsString,
   date: parseAsArrayOf(parseAsTimestamp, RANGE_DELIMITER),
   // REQUIRED FOR SORTING & PAGINATION
   sort: parseAsSort,

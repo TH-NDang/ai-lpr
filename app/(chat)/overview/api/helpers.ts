@@ -33,10 +33,7 @@ export const filterValues = [
   "level",
   ...sliderFilterValues,
   "status",
-  "regions",
   "method",
-  "host",
-  "pathname",
 ] as const satisfies (keyof ColumnSchema)[];
 
 export function filterData(
@@ -69,12 +66,6 @@ export function filterData(
       }
       if (key === "status" && isArrayOfNumbers(filter)) {
         if (!filter.includes(row[key])) {
-          return false;
-        }
-      }
-      if (key === "regions" && Array.isArray(filter)) {
-        const typedFilter = filter as unknown as typeof REGIONS;
-        if (!typedFilter.includes(row[key]?.[0])) {
           return false;
         }
       }
