@@ -109,3 +109,13 @@ export const suggestion = pgTable(
 );
 
 export type Suggestion = InferSelectModel<typeof suggestion>;
+
+export const licensePlates = pgTable("license_plates", {
+  id: serial("id").primaryKey(),
+  plateNumber: text("plate_number").notNull(),
+  confidence: integer("confidence").notNull(),
+  imageUrl: text("image_url").notNull(),
+  processedImageUrl: text("processed_image_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});

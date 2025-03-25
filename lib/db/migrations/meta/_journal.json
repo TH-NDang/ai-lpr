@@ -8,6 +8,13 @@
       "when": 1741160712317,
       "tag": "0000_worthless_leper_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1742916107621,
+      "tag": "0001_lovely_patch",
+      "breakpoints": true
     }
   ]
 }
