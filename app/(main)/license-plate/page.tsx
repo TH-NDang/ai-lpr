@@ -1,22 +1,24 @@
-"use client";
-
+import { Metadata } from "next";
 import { LicensePlateUpload } from "@/components/license-plate-upload";
-import { SidebarToggle } from "@/components/sidebar-toggle";
+
+export const metadata: Metadata = {
+  title: "Nhận dạng biển số xe | AI-LPR",
+  description: "Hệ thống nhận dạng biển số xe thông minh sử dụng AI",
+};
 
 export default function LicensePlatePage() {
   return (
     <div className="container mx-auto py-8">
-      <SidebarToggle />
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold">Nhận Dạng Biển Số Xe</h1>
-          <p className="text-muted-foreground mt-2">
-            Tải lên hình ảnh biển số xe để nhận dạng và phân tích thông tin chi
-            tiết
-          </p>
-        </div>
-        <LicensePlateUpload />
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold tracking-tight">
+          Nhận dạng biển số xe
+        </h1>
+        <p className="text-muted-foreground mt-2">
+          Tải lên hình ảnh để nhận dạng và phân tích biển số xe
+        </p>
       </div>
+
+      <LicensePlateUpload />
     </div>
   );
 }

@@ -114,6 +114,7 @@ export const licensePlates = pgTable("license_plates", {
   id: serial("id").primaryKey(),
   plateNumber: text("plate_number").notNull(),
   confidence: integer("confidence").notNull(),
+  confidence_ocr: integer("confidence_ocr"),
   imageUrl: text("image_url").notNull(),
   processedImageUrl: text("processed_image_url"),
 
@@ -158,6 +159,7 @@ export function transformDbRecordToColumnSchema(record: LicensePlate) {
     date: new Date(record.createdAt),
     plateNumber: sanitizeString(record.plateNumber),
     confidence: record.confidence,
+    confidence_ocr: record.confidence_ocr || 0,
     provinceCode: sanitizeString(record.provinceCode),
     provinceName: sanitizeString(record.provinceName),
     vehicleType: sanitizeString(record.vehicleType),

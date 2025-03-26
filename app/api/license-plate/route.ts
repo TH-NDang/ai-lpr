@@ -44,9 +44,11 @@ export async function POST(req: Request) {
           success: false,
           plateNumber: result.plateNumber,
           confidence: 0,
+          confidence_ocr: 0,
           imageUrl,
           processedImageUrl: result.processedImageUrl,
           plateAnalysis: null,
+          allDetections: result.allDetections || null,
         });
       }
 
@@ -66,6 +68,9 @@ export async function POST(req: Request) {
         .values({
           plateNumber: result.plateNumber,
           confidence: Math.round(result.confidence * 100),
+          confidence_ocr: result.confidence_ocr
+            ? Math.round(result.confidence_ocr * 100)
+            : null,
           imageUrl,
           processedImageUrl: result.processedImageUrl,
           provinceCode,
@@ -82,6 +87,7 @@ export async function POST(req: Request) {
         success: true,
         ...record,
         plateAnalysis: result.plateAnalysis,
+        allDetections: result.allDetections || null,
       });
     } catch (error) {
       console.error("Error processing license plate:", error);

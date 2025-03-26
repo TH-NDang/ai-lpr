@@ -1,0 +1,1 @@
+ALTER TABLE "license_plates" ADD COLUMN "confidence_ocr" integer;
