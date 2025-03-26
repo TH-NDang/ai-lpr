@@ -1,11 +1,9 @@
 import type { ColumnSchema, FacetMetadataSchema } from "./schema";
 import { type SearchParamsType, searchParamsSerializer } from "./search-params";
 import { infiniteQueryOptions, keepPreviousData } from "@tanstack/react-query";
-import type { Percentile } from "@/lib/request/percentile";
 
-export type LogsMeta = {
-  currentPercentiles: Record<Percentile, number>;
-};
+// Định nghĩa LogsMeta là đối tượng trống, vì không còn cần percentiles
+export type LogsMeta = Record<string, never>;
 
 export type InfiniteQueryMeta<TMeta = Record<string, unknown>> = {
   totalRowCount: number;

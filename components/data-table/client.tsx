@@ -12,6 +12,9 @@ import { useHotKey } from "@/hooks/use-hot-key";
 import { getLevelRowClassName } from "@/lib/request/level";
 import type { FacetMetadataSchema } from "../../lib/table/schema";
 import type { Table as TTable } from "@tanstack/react-table";
+import type { DataTableFilterField } from "./types";
+import type { ColumnSchema } from "@/lib/table/schema";
+import type { LogsMeta } from "@/lib/table/query-options";
 
 export function Client() {
   const [search] = useQueryStates(searchParamsParser);
@@ -29,7 +32,7 @@ export function Client() {
   const lastPage = data?.pages?.[data?.pages.length - 1];
   const totalDBRowCount = lastPage?.meta?.totalRowCount;
   const filterDBRowCount = lastPage?.meta?.filterRowCount;
-  const metadata = lastPage?.meta?.metadata;
+  const metadata = lastPage?.meta?.metadata || ({} as LogsMeta);
   const chartData = lastPage?.meta?.chartData;
   const facets = lastPage?.meta?.facets;
   const totalFetched = flatData?.length;
@@ -61,7 +64,7 @@ export function Client() {
     }
 
     return { ...field, options };
-  });
+  }) as DataTableFilterField<ColumnSchema>[];
 
   return (
     <DataTableInfinite
@@ -78,14 +81,9 @@ export function Client() {
         .filter(({ value }) => value ?? undefined)}
       defaultColumnSorting={sort ? [sort] : undefined}
       defaultRowSelection={search.uuid ? { [search.uuid]: true } : undefined}
-      // FIXME: make it configurable - TODO: use `columnHidden: boolean` in `filterFields`
+      // Chỉ giữ lại uuid là trường ẩn mặc định
       defaultColumnVisibility={{
         uuid: false,
-        "timing.dns": false,
-        "timing.connection": false,
-        "timing.tls": false,
-        "timing.ttfb": false,
-        "timing.transfer": false,
       }}
       meta={metadata}
       filterFields={filterFields}

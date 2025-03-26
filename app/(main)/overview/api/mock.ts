@@ -1,115 +1,183 @@
 import type { METHODS } from "@/components/data-table/constants/method";
 import type { ColumnSchema } from "../../../../lib/table/schema";
-import { subMinutes } from "date-fns";
+import { subMinutes, subHours, subDays } from "date-fns";
 import type { REGIONS } from "@/components/data-table/constants/region";
 
 const DAYS = 20;
 
-function getRandomTiming(latency: number) {
-  // Generate random percentages within the specified ranges
-  const dns = Math.random() * (0.15 - 0.05) + 0.05; // 5% to 15%
-  const connection = Math.random() * (0.3 - 0.1) + 0.1; // 10% to 30%
-  const tls = Math.random() * (0.1 - 0.05) + 0.05; // 5% to 10%
-  const transfer = Math.random() * (0.004 - 0) + 0.004; // 0% to 0.4%
+// Dữ liệu biển số tỉnh/thành phố
+const PROVINCE_CODES: Record<string, string> = {
+  "11": "Cao Bằng",
+  "12": "Lạng Sơn",
+  "14": "Quảng Ninh",
+  "15": "Hải Phòng",
+  "16": "Hải Phòng",
+  "17": "Thái Bình",
+  "18": "Nam Định",
+  "19": "Phú Thọ",
+  "20": "Thái Nguyên",
+  "21": "Yên Bái",
+  "22": "Tuyên Quang",
+  "23": "Hà Giang",
+  "24": "Lào Cai",
+  "25": "Lai Châu",
+  "26": "Sơn La",
+  "27": "Điện Biên",
+  "28": "Hòa Bình",
+  "29": "Hà Nội",
+  "30": "Hà Nội",
+  "31": "Hà Nội",
+  "32": "Hà Nội",
+  "33": "Hà Nội",
+  "34": "Hải Dương",
+  "35": "Ninh Bình",
+  "36": "Thanh Hóa",
+  "37": "Nghệ An",
+  "38": "Hà Tĩnh",
+  "39": "Đồng Nai",
+  "40": "Hà Nội",
+  "41": "TP. Hồ Chí Minh",
+  "43": "TP. Đà Nẵng",
+  "47": "Đắk Lắk",
+  "48": "Đắk Nông",
+  "49": "Lâm Đồng",
+  "50": "TP. Hồ Chí Minh",
+  "51": "TP. Hồ Chí Minh",
+  "52": "TP. Hồ Chí Minh",
+  "53": "TP. Hồ Chí Minh",
+  "54": "TP. Hồ Chí Minh",
+  "55": "TP. Hồ Chí Minh",
+  "56": "TP. Hồ Chí Minh",
+  "57": "TP. Hồ Chí Minh",
+  "58": "TP. Hồ Chí Minh",
+  "59": "TP. Hồ Chí Minh",
+  "60": "Đồng Nai",
+  "61": "Bình Dương",
+  "62": "Long An",
+  "63": "Tiền Giang",
+  "64": "Vĩnh Long",
+  "65": "Cần Thơ",
+  "66": "Đồng Tháp",
+  "67": "An Giang",
+  "68": "Kiên Giang",
+  "69": "Cà Mau",
+  "70": "Tây Ninh",
+  "71": "Bến Tre",
+  "72": "Bà Rịa - Vũng Tàu",
+  "73": "Quảng Bình",
+  "74": "Quảng Trị",
+  "75": "Thừa Thiên Huế",
+  "76": "Quảng Ngãi",
+  "77": "Bình Định",
+  "78": "Phú Yên",
+  "79": "Khánh Hòa",
+  "81": "Gia Lai",
+  "82": "Kon Tum",
+  "83": "Sóc Trăng",
+  "84": "Trà Vinh",
+  "85": "Ninh Thuận",
+  "86": "Bình Thuận",
+  "88": "Vĩnh Phúc",
+  "89": "Hưng Yên",
+  "90": "Hà Nam",
+  "92": "Quảng Nam",
+  "93": "Bình Phước",
+  "94": "Bạc Liêu",
+  "95": "Hậu Giang",
+  "97": "Bắc Kạn",
+  "98": "Bắc Giang",
+  "99": "Bắc Ninh",
+};
 
-  // Ensure the sum of dns, connection, tls, and transfer is subtracted from 100% for ttfb
-  const remaining = 1 - (dns + connection + tls + transfer); // Calculate remaining for ttfb
+const VEHICLE_TYPES = [
+  "Xe con",
+  "Xe tải",
+  "Xe khách",
+  "Xe chuyên dùng",
+  "Xe máy",
+  "Xe buýt",
+  "Xe cứu thương",
+  "Xe cứu hỏa",
+];
 
-  return {
-    "timing.dns": Math.round(latency * dns),
-    "timing.connection": Math.round(latency * connection),
-    "timing.tls": Math.round(latency * tls),
-    "timing.ttfb": Math.round(latency * remaining), // Use the remaining percentage for ttfb
-    "timing.transfer": Math.round(latency * transfer),
-  };
+const PLATE_TYPES = [
+  "Biển trắng",
+  "Biển vàng",
+  "Biển xanh",
+  "Biển đỏ",
+  "Biển ngoại giao",
+];
+
+const PLATE_FORMATS = ["1 dòng", "2 dòng", "Vuông"];
+
+const IMAGE_SOURCES = [
+  "Camera trước",
+  "Camera sau",
+  "Camera bên",
+  "Ảnh tải lên",
+  "Video",
+  "Camera hành trình",
+];
+
+function getRandomProvinceCode() {
+  const provinceCodes = Object.keys(PROVINCE_CODES);
+  const randomIndex = Math.floor(Math.random() * provinceCodes.length);
+  return provinceCodes[randomIndex];
 }
 
-// REMINDER: for later
-function getRandomMetadata(): Record<string, string> {
-  const rand = Math.random();
-  if (rand < 0.5) {
-    return {
-      env: "production",
-    };
-  } else {
-    return {
-      env: "staging",
-    };
-  }
+function getRandomConfidence() {
+  // Trả về giá trị từ 60 đến 100
+  return Math.floor(Math.random() * 41) + 60;
 }
 
-function getLevel(status: number) {
-  if (`${status}`.startsWith("2")) return "success";
-  if (`${status}`.startsWith("4")) return "warning";
-  if (`${status}`.startsWith("5")) return "error";
+function getRandomVehicleType() {
+  return VEHICLE_TYPES[Math.floor(Math.random() * VEHICLE_TYPES.length)];
+}
+
+function getRandomPlateType() {
+  return PLATE_TYPES[Math.floor(Math.random() * PLATE_TYPES.length)];
+}
+
+function getRandomPlateFormat() {
+  return PLATE_FORMATS[Math.floor(Math.random() * PLATE_FORMATS.length)];
+}
+
+function getRandomImageSource() {
+  return IMAGE_SOURCES[Math.floor(Math.random() * IMAGE_SOURCES.length)];
+}
+
+function getLevel(confidence: number) {
+  if (confidence >= 90) return "success";
+  if (confidence >= 75) return "warning";
   return "error";
 }
 
-function getRandomStatusCode() {
-  const rand = Math.random();
-  if (rand < 0.9) {
-    return 200;
-  } else if (rand < 0.96) {
-    if (Math.random() < 0.5) {
-      return 400;
-    } else {
-      return 404;
-    }
-  } else {
-    return 500;
+function getRandomAlphaNumeric(length: number) {
+  const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let result = "";
+  for (let i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * characters.length));
   }
+  return result;
 }
 
-function getMessage() {
-  return 'ERR_INTERNAL_DISASTER: "The server spilled coffee on itself."';
+function generateRandomLicensePlate(provinceCode: string) {
+  // Tạo ra biển số ngẫu nhiên theo mẫu: 30A-12345
+  const letters = "ABCDEFGHKLMNPRSTUVXYZ";
+  const randomLetter = letters.charAt(
+    Math.floor(Math.random() * letters.length)
+  );
+  const randomNumber = Math.floor(Math.random() * 99999)
+    .toString()
+    .padStart(5, "0");
+
+  return `${provinceCode}${randomLetter}-${randomNumber}`;
 }
 
-const shopPathnames = [
-  "/bikes/gravel/road",
-  "/bikes/racing/track",
-  "/bikes/mountain/trail",
-  "/bikes/city/cargo",
-];
-
-const apiPathnames = ["/v1/products", "/v1/orders", "/v1/customers"];
-
-function getRandomRequestObject(): {
-  method: (typeof METHODS)[number];
-  host: string;
-  pathname: string;
-} {
-  const rand = Math.random();
-  if (rand < 0.5) {
-    return {
-      method: "POST",
-      host: "api.acme-shop.com",
-      pathname: apiPathnames[Math.floor(Math.random() * apiPathnames.length)],
-    };
-  } else {
-    return {
-      method: "GET",
-      host: "acme-shop.com",
-      pathname: shopPathnames[Math.floor(Math.random() * shopPathnames.length)],
-    };
-  }
+function generateRandomProcessingTime() {
+  // Return a random processing time between 50ms and 2000ms
+  return Math.floor(Math.random() * 1950) + 50;
 }
-
-function getHeaders() {
-  return {
-    Age: "0",
-    "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate",
-    Server: "Cloudflare",
-  };
-}
-
-const multiplier: Record<(typeof REGIONS)[number], number> = {
-  ams: 1,
-  iad: 0.6,
-  gru: 1.6,
-  syd: 1.3,
-  fra: 0.8,
-  hkg: 1.4,
-};
 
 export function createMockData({
   minutes = 0,
@@ -117,106 +185,53 @@ export function createMockData({
   size?: number;
   minutes?: number;
 }): ColumnSchema[] {
-  const date = subMinutes(new Date(), minutes);
-  const random = Math.random();
+  // Distribute dates evenly across the specified minutes
+  let date: Date;
+  if (minutes < 60) {
+    date = subMinutes(new Date(), minutes);
+  } else if (minutes < 1440) {
+    // Less than a day
+    date = subHours(new Date(), Math.floor(minutes / 60));
+  } else {
+    date = subDays(new Date(), Math.floor(minutes / 1440));
+  }
 
-  const statusCode = {
-    ams: getRandomStatusCode(),
-    iad: getRandomStatusCode(),
-    gru: getRandomStatusCode(),
-    syd: getRandomStatusCode(),
-    fra: getRandomStatusCode(),
-    hkg: getRandomStatusCode(),
-  };
+  const provinceCode = getRandomProvinceCode();
+  const provinceName = PROVINCE_CODES[provinceCode];
+  const vehicleType = getRandomVehicleType();
+  const plateType = getRandomPlateType();
+  const plateFormat = getRandomPlateFormat();
+  const confidence = getRandomConfidence();
+  const plateNumber = generateRandomLicensePlate(provinceCode);
+  const imageSource = getRandomImageSource();
+  const processingTime = generateRandomProcessingTime();
 
-  const latency = {
-    ams: Math.round(1000 * (random * (1 - multiplier.ams) + multiplier.ams)),
-    iad: Math.round(1000 * (random * (1 - multiplier.iad) + multiplier.iad)),
-    gru: Math.round(1000 * (random * (1 - multiplier.gru) + multiplier.gru)),
-    syd: Math.round(1000 * (random * (1 - multiplier.syd) + multiplier.syd)),
-    fra: Math.round(1000 * (random * (1 - multiplier.fra) + multiplier.fra)),
-    hkg: Math.round(1000 * (random * (1 - multiplier.hkg) + multiplier.hkg)),
-  };
-
-  const requestObject = getRandomRequestObject();
-  const headers = getHeaders();
-
+  // Generate a single license plate recognition record
   return [
     {
       uuid: crypto.randomUUID(),
-      level: getLevel(statusCode.ams),
-      latency: latency.ams,
-      regions: ["ams"],
-      status: statusCode.ams,
+      level: getLevel(confidence),
       date,
-      headers,
-      message: statusCode.ams === 500 ? getMessage() : undefined,
-      ...getRandomTiming(latency.ams),
-      ...requestObject,
-    },
-    {
-      uuid: crypto.randomUUID(),
-      level: getLevel(statusCode.iad),
-      latency: latency.iad,
-      regions: ["iad"],
-      status: statusCode.iad,
-      date,
-      headers,
-      message: statusCode.iad === 500 ? getMessage() : undefined,
-      ...getRandomTiming(latency.iad),
-      ...requestObject,
-    },
-    {
-      uuid: crypto.randomUUID(),
-      level: getLevel(statusCode.gru),
-      latency: latency.gru,
-      regions: ["gru"],
-      status: statusCode.gru,
-      date,
-      headers,
-      message: statusCode.gru === 500 ? getMessage() : undefined,
-      ...getRandomTiming(latency.gru),
-      ...requestObject,
-    },
-    {
-      uuid: crypto.randomUUID(),
-      level: getLevel(statusCode.syd),
-      latency: latency.syd,
-      regions: ["syd"],
-      status: statusCode.syd,
-      date,
-      headers,
-      message: statusCode.syd === 500 ? getMessage() : undefined,
-      ...getRandomTiming(latency.syd),
-      ...requestObject,
-    },
-    {
-      uuid: crypto.randomUUID(),
-      level: getLevel(statusCode.fra),
-      latency: latency.fra,
-      regions: ["fra"],
-      status: statusCode.fra,
-      date,
-      headers,
-      message: statusCode.fra === 500 ? getMessage() : undefined,
-      ...getRandomTiming(latency.fra),
-      ...requestObject,
-    },
-    {
-      uuid: crypto.randomUUID(),
-      level: getLevel(statusCode.hkg),
-      latency: latency.hkg,
-      regions: ["hkg"],
-      status: statusCode.hkg,
-      date,
-      headers,
-      message: statusCode.hkg === 500 ? getMessage() : undefined,
-      ...getRandomTiming(latency.hkg),
-      ...requestObject,
+      plateNumber,
+      confidence,
+      provinceCode,
+      provinceName,
+      vehicleType,
+      plateType,
+      plateFormat,
+      imageSource,
+      processingTime,
+      plateSerial: plateNumber.split("-")[0],
+      registrationNumber: plateNumber.split("-")[1] || "",
+      imageUrl: `/images/plate-${Math.floor(Math.random() * 10) + 1}.jpg`,
+      processedImageUrl: `/images/processed-plate-${
+        Math.floor(Math.random() * 10) + 1
+      }.jpg`,
     },
   ];
 }
 
-export const mock = Array.from({ length: DAYS * 24 })
-  .map((_, i) => createMockData({ minutes: i * 60 }))
+// Generate mock data with random timestamps across the DAYS period
+export const mock = Array.from({ length: DAYS * 24 * 3 }) // 3 entries per hour
+  .map((_, i) => createMockData({ minutes: Math.floor(i * 20) }))
   .reduce((prev, curr) => prev.concat(curr), []) satisfies ColumnSchema[];

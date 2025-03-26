@@ -36,13 +36,27 @@ export function DataTableFilterInput<TData>({
     }
   }, [filters, debouncedInput]);
 
+  // Xác định placeholder tùy theo loại trường
+  const getPlaceholder = () => {
+    switch (value) {
+      case "plateNumber":
+        return "Nhập biển số...";
+      case "provinceCode":
+        return "Nhập mã tỉnh...";
+      case "provinceName":
+        return "Nhập tên tỉnh/thành...";
+      default:
+        return "Tìm kiếm...";
+    }
+  };
+
   return (
     <div className="grid w-full gap-1.5">
       <Label htmlFor={value} className="sr-only px-2 text-muted-foreground">
         {value}
       </Label>
       <InputWithAddons
-        placeholder="Search"
+        placeholder={getPlaceholder()}
         leading={<Search className="mt-0.5 h-4 w-4" />}
         containerClassName="h-9 rounded-lg"
         name={value}

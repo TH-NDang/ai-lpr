@@ -52,12 +52,12 @@ export function getLevelRowClassName(value: (typeof LEVELS)[number]): string {
 export function getLevelLabel(value: (typeof LEVELS)[number]): string {
   switch (value) {
     case "success":
-      return "2xx";
+      return "Thành công";
     case "warning":
-      return "4xx";
+      return "Cảnh báo";
     case "error":
-      return "5xx";
+      return "Lỗi";
     default:
-      return "Unknown";
+      return "Không xác định";
   }
 }

@@ -64,6 +64,12 @@ export function DataTableFilterControls() {
                     case "timerange": {
                       return <DataTableFilterTimerange {...field} />;
                     }
+                    case "multi-select": {
+                      return <DataTableFilterCheckbox {...field} />;
+                    }
+                    case "date": {
+                      return <DataTableFilterTimerange {...field} />;
+                    }
                   }
                 })()}
               </div>

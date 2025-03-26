@@ -3,221 +3,369 @@ import {
   addMilliseconds,
   differenceInMinutes,
   isSameDay,
+  startOfDay,
 } from "date-fns";
 import type {
   FacetMetadataSchema,
   ColumnSchema,
+  ColumnFilterSchema,
 } from "../../../../lib/table/schema";
 import type { SearchParamsType } from "../../../../lib/table/search-params";
-import {
-  isArrayOfDates,
-  isArrayOfNumbers,
-} from "@/lib/table/is-array";
+import { isArrayOfDates, isArrayOfNumbers } from "@/lib/table/is-array";
 import {
   calculatePercentile,
   calculateSpecificPercentile,
 } from "@/lib/request/percentile";
-import type { REGIONS } from "@/components/data-table/constants/region";
 import type { LEVELS } from "@/components/data-table/constants/levels";
+import type { SortingState } from "@tanstack/react-table";
 
+/**
+ * Loại bỏ dấu tiếng Việt từ chuỗi và chuẩn hóa khoảng trắng
+ */
+function normalizeText(str: string): string {
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, " "); // Chuẩn hóa khoảng trắng, thay nhiều khoảng trắng bằng 1 khoảng trắng
+}
+
+// Define the known field keys for ColumnSchema for type safety
+type LicensePlateFields =
+  | "plateNumber"
+  | "confidence"
+  | "provinceCode"
+  | "provinceName"
+  | "vehicleType"
+  | "plateType"
+  | "processingTime";
+
+// Only include actual fields from the schema
 export const sliderFilterValues = [
-  "latency",
-  "timing.dns",
-  "timing.connection",
-  "timing.tls",
-  "timing.ttfb",
-  "timing.transfer",
+  "confidence",
+  "processingTime",
 ] as const satisfies (keyof ColumnSchema)[];
 
 export const filterValues = [
   "level",
   ...sliderFilterValues,
-  "status",
-  "regions",
-  "method",
-  "host",
-  "pathname",
+  "plateNumber",
+  "provinceCode",
+  "provinceName",
+  "vehicleType",
+  "plateType",
+  "plateFormat",
+  "plateSerial",
+  "registrationNumber",
+  "imageSource",
 ] as const satisfies (keyof ColumnSchema)[];
 
 export function filterData(
   data: ColumnSchema[],
-  search: Partial<SearchParamsType>
+  filter: ColumnFilterSchema
 ): ColumnSchema[] {
-  const { start, size, sort, ...filters } = search;
-  return data.filter((row) => {
-    for (const key in filters) {
-      const filter = filters[key as keyof typeof filters];
-      if (filter === undefined || filter === null) continue;
+  return data.filter((item) => {
+    return Object.entries(filter).every(([key, value]) => {
+      if (value === null || value === undefined) return true;
+
+      // Date filter with date range
+      if (key === "date" && Array.isArray(value) && value.length === 2) {
+        const [start, end] = value as [Date, Date];
+        const date = item.date;
+        return date >= start && date <= end;
+      }
+
+      // Confidence/Processing Time filter with range
+      if (key === "confidence" && Array.isArray(value) && value.length === 2) {
+        const [min, max] = value as [number, number];
+        const confidence = item.confidence || 0;
+        return confidence >= min && confidence <= max;
+      }
+
       if (
-        (key === "latency" ||
-          key === "timing.dns" ||
-          key === "timing.connection" ||
-          key === "timing.tls" ||
-          key === "timing.ttfb" ||
-          key === "timing.transfer") &&
-        isArrayOfNumbers(filter)
+        key === "processingTime" &&
+        Array.isArray(value) &&
+        value.length === 2
       ) {
-        if (filter.length === 1 && row[key] !== filter[0]) {
-          return false;
-        } else if (
-          filter.length === 2 &&
-          (row[key] < filter[0] || row[key] > filter[1])
-        ) {
-          return false;
+        const [min, max] = value as [number, number];
+        const processingTime = item.processingTime || 0;
+        return processingTime >= min && processingTime <= max;
+      }
+
+      // Level filter (single or multiple values)
+      if (key === "level") {
+        if (Array.isArray(value)) {
+          // Type assertion to make the compiler happy
+          const levelValues = value as unknown as string[];
+          return levelValues.includes(item.level);
         }
+        return item.level === value;
+      }
+
+      // Text field filters (string comparison)
+      if (
+        [
+          "plateNumber",
+          "provinceCode",
+          "provinceName",
+          "vehicleType",
+          "plateType",
+        ].includes(key)
+      ) {
+        const fieldKey = key as LicensePlateFields;
+
+        if (Array.isArray(value)) {
+          // Type assertion for the array values
+          const stringValues = value as unknown as string[];
+          return stringValues.includes(String(item[fieldKey] || ""));
+        }
+
+        if (typeof value === "string" && value.trim() !== "") {
+          const itemValue = String(item[fieldKey] || "")
+            .toLowerCase()
+            .trim();
+          const searchValue = value.toLowerCase().trim();
+
+          // Trường hợp tìm kiếm chuỗi rỗng
+          if (searchValue === "") return true;
+
+          // Tìm kiếm chuỗi chính xác (có dấu)
+          if (itemValue.includes(searchValue)) {
+            return true;
+          }
+
+          // Tìm kiếm không dấu (khi người dùng nhập không dấu nhưng muốn tìm kết quả có dấu)
+          const normalizedItem = normalizeText(String(item[fieldKey] || ""));
+          const normalizedSearch = normalizeText(value);
+
+          return normalizedItem.includes(normalizedSearch);
+        }
+
         return true;
       }
-      if (key === "status" && isArrayOfNumbers(filter)) {
-        if (!filter.includes(row[key])) {
-          return false;
-        }
-      }
-      if (key === "regions" && Array.isArray(filter)) {
-        const typedFilter = filter as unknown as typeof REGIONS;
-        if (!typedFilter.includes(row[key]?.[0])) {
-          return false;
-        }
-      }
-      if (key === "date" && isArrayOfDates(filter)) {
-        if (filter.length === 1 && !isSameDay(row[key], filter[0])) {
-          return false;
-        } else if (
-          filter.length === 2 &&
-          (row[key].getTime() < filter[0].getTime() ||
-            row[key].getTime() > filter[1].getTime())
-        ) {
-          return false;
-        }
-      }
-      if (key === "level" && Array.isArray(filter)) {
-        const typedFilter = filter as unknown as (typeof LEVELS)[number][];
-        if (!typedFilter.includes(row[key])) {
-          return false;
-        }
-      }
-    }
-    return true;
+
+      return true;
+    });
   });
 }
 
-export function sortData(data: ColumnSchema[], sort: SearchParamsType["sort"]) {
+export function sortData(
+  data: ColumnSchema[],
+  sort?: SortingState[number]
+): ColumnSchema[] {
   if (!sort) return data;
-  return data.sort((a, b) => {
-    if (sort.desc) {
-      // @ts-ignore
-      return a?.[sort.id] < b?.[sort.id] ? 1 : -1;
-    } else {
-      // @ts-ignore
-      return a?.[sort.id] > b?.[sort.id] ? 1 : -1;
+
+  const { id, desc } = sort;
+
+  const sortedData = [...data].sort((a, b) => {
+    if (id === "date") {
+      const aDate = a.date.getTime();
+      const bDate = b.date.getTime();
+      return desc ? bDate - aDate : aDate - bDate;
     }
+
+    if (id === "confidence" || id === "processingTime") {
+      const aValue = (a[id as keyof ColumnSchema] as number) || 0;
+      const bValue = (b[id as keyof ColumnSchema] as number) || 0;
+      return desc ? bValue - aValue : aValue - bValue;
+    }
+
+    if (
+      [
+        "plateNumber",
+        "provinceCode",
+        "provinceName",
+        "vehicleType",
+        "plateType",
+      ].includes(id)
+    ) {
+      const aValue = String(a[id as keyof ColumnSchema] || "").toLowerCase();
+      const bValue = String(b[id as keyof ColumnSchema] || "").toLowerCase();
+      return desc ? bValue.localeCompare(aValue) : aValue.localeCompare(bValue);
+    }
+
+    return 0;
   });
+
+  return sortedData;
 }
 
 export function percentileData(data: ColumnSchema[]): ColumnSchema[] {
-  const latencies = data.map((row) => row.latency);
+  // Use confidence instead of latency for percentile
+  const confidenceValues = data
+    .map((row) => row.confidence)
+    .filter((c): c is number => c !== undefined);
+
   return data.map((row) => ({
     ...row,
-    percentile: calculatePercentile(latencies, row.latency),
+    percentile: row.confidence
+      ? calculatePercentile(confidenceValues, row.confidence)
+      : undefined,
   }));
 }
 
 export function getFacetsFromData(data: ColumnSchema[]) {
-  const valuesMap = data.reduce((prev, curr) => {
-    Object.entries(curr).forEach(([key, value]) => {
-      if (filterValues.includes(key as any)) {
-        // REMINDER: because regions is an array with a single value we need to convert to string
-        // TODO: we should make the region a single string instead of an array?!?
-        const _value = Array.isArray(value) ? value.toString() : value;
-        const total = prev.get(key)?.get(_value) || 0;
-        if (prev.has(key) && _value) {
-          prev.get(key)?.set(_value, total + 1);
-        } else if (_value) {
-          prev.set(key, new Map([[_value, 1]]));
-        }
+  // Get unique values and their counts for categorical fields
+  const facets: Record<string, any> = {};
+
+  // Process categorical fields
+  const categoricalFields = [
+    "level",
+    "provinceCode",
+    "provinceName",
+    "vehicleType",
+    "plateType",
+    "plateFormat",
+    "imageSource",
+  ];
+
+  categoricalFields.forEach((field) => {
+    const valueMap = new Map<string, number>();
+    data.forEach((item) => {
+      const value = String(item[field as keyof ColumnSchema] || "");
+      if (value) {
+        valueMap.set(value, (valueMap.get(value) || 0) + 1);
       }
     });
-    return prev;
-  }, new Map<string, Map<any, number>>());
 
-  const facets = Object.fromEntries(
-    Array.from(valuesMap.entries()).map(([key, valueMap]) => {
-      let min: number | undefined;
-      let max: number | undefined;
-      const rows = Array.from(valueMap.entries()).map(([value, total]) => {
-        if (typeof value === "number") {
-          if (!min) min = value;
-          else min = value < min ? value : min;
-          if (!max) max = value;
-          else max = value > max ? value : max;
-        }
-        return {
+    facets[field] = {
+      rows: Array.from(valueMap.entries()).map(([value, total]) => ({
+        value,
+        total,
+      })),
+    };
+  });
+
+  // Process numeric fields (confidence, processingTime)
+  const numericFields = ["confidence", "processingTime"];
+
+  numericFields.forEach((field) => {
+    const values = data
+      .map((item) => item[field as keyof ColumnSchema] as number | undefined)
+      .filter((value): value is number => value !== undefined && value !== null);
+
+    if (values.length > 0) {
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+
+      // Group values into buckets
+      const bucketSize = Math.max(1, Math.ceil((max - min) / 10));
+      const bucketMap = new Map<string, number>();
+
+      values.forEach((value) => {
+        const bucketValue = Math.floor(value / bucketSize) * bucketSize;
+        const bucketKey = `${bucketValue}-${bucketValue + bucketSize - 1}`;
+        bucketMap.set(bucketKey, (bucketMap.get(bucketKey) || 0) + 1);
+      });
+
+      facets[field] = {
+        min,
+        max,
+        rows: Array.from(bucketMap.entries()).map(([value, total]) => ({
           value,
           total,
-        };
-      });
-      const total = Array.from(valueMap.values()).reduce((a, b) => a + b, 0);
-      return [key, { rows, total, min, max }];
-    })
-  );
+        })),
+      };
+    } else {
+      facets[field] = {
+        min: 0,
+        max: 100,
+        rows: [],
+      };
+    }
+  });
 
-  return facets satisfies Record<string, FacetMetadataSchema>;
+  return facets;
 }
 
 export function getPercentileFromData(data: ColumnSchema[]) {
-  const latencies = data.map((row) => row.latency);
+  // Use confidence values for percentile calculation
+  const confidenceValues = data
+    .map((row) => row.confidence)
+    .filter((c): c is number => c !== undefined);
 
-  const p50 = calculateSpecificPercentile(latencies, 50);
-  const p75 = calculateSpecificPercentile(latencies, 75);
-  const p90 = calculateSpecificPercentile(latencies, 90);
-  const p95 = calculateSpecificPercentile(latencies, 95);
-  const p99 = calculateSpecificPercentile(latencies, 99);
+  const p50 = calculateSpecificPercentile(confidenceValues, 50);
+  const p75 = calculateSpecificPercentile(confidenceValues, 75);
+  const p90 = calculateSpecificPercentile(confidenceValues, 90);
+  const p95 = calculateSpecificPercentile(confidenceValues, 95);
+  const p99 = calculateSpecificPercentile(confidenceValues, 99);
 
   return { p50, p75, p90, p95, p99 };
 }
 
 export function groupChartData(
   data: ColumnSchema[],
-  dates: Date[] | null
-): { timestamp: number; [key: string]: number }[] {
-  if (data?.length === 0 && !dates) return [];
+  dateRange?: [Date, Date]
+): {
+  timestamp: number;
+  count: number;
+  success: number;
+  warning: number;
+  error: number;
+  avg_confidence: number;
+  avg_processing_time: number;
+}[] {
+  if (data.length === 0) return [];
 
-  // If we only have one date, we need to add a day to it
-  const _dates = dates?.length === 1 ? [dates[0], addDays(dates[0], 1)] : dates;
+  // Create date range if not provided
+  const [start, end] = dateRange || [
+    data.reduce(
+      (acc, item) => (item.date < acc ? item.date : acc),
+      data[0].date
+    ),
+    data.reduce(
+      (acc, item) => (item.date > acc ? item.date : acc),
+      data[0].date
+    ),
+  ];
 
-  const between =
-    _dates || (data?.length ? [data[data.length - 1].date, data[0].date] : []);
-
-  if (!between.length) return [];
-  const interval = evaluateInterval(between);
-
-  const duration = Math.abs(
-    between[0].getTime() - between[between.length - 1].getTime()
+  // Group data by day
+  const dateMap = new Map<number, ColumnSchema[]>();
+  const dayDiff = Math.ceil(
+    (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
   );
-  const steps = Math.floor(duration / interval);
 
-  const timestamps: { date: Date }[] = [];
-
-  for (let i = 0; i < steps; i++) {
-    const newTimestamp = addMilliseconds(between[0], i * interval);
-    timestamps.push({ date: newTimestamp });
+  // Create empty buckets for each day
+  for (let i = 0; i <= dayDiff; i++) {
+    const date = addDays(start, i);
+    const timestamp = startOfDay(date).getTime();
+    dateMap.set(timestamp, []);
   }
 
-  // TODO: make it dynamic to avoid havin 200, 400, 500 hardcoded
-  // TODO: make it more efficient
-  // e.g. make the "status" prop we use as T generic
-  return timestamps.map((timestamp, i) => {
-    const filteredData = data.filter((row) => {
-      const diff = row.date.getTime() - timestamp.date.getTime();
-      return diff < interval && diff >= 0;
-    });
-
-    return {
-      timestamp: timestamp.date.getTime(), // TODO: use date-fns and interval to determine the format
-      success: filteredData.filter((row) => row.level === "success").length,
-      warning: filteredData.filter((row) => row.level === "warning").length,
-      error: filteredData.filter((row) => row.level === "error").length,
-    };
+  // Fill buckets with data
+  data.forEach((item) => {
+    const timestamp = startOfDay(item.date).getTime();
+    if (dateMap.has(timestamp)) {
+      dateMap.get(timestamp)?.push(item);
+    }
   });
+
+  // Transform to chart data
+  return Array.from(dateMap.entries())
+    .map(([timestamp, items]) => {
+      const totalConfidence = items.reduce(
+        (sum, item) => sum + (item.confidence || 0),
+        0
+      );
+      const totalProcessingTime = items.reduce(
+        (sum, item) => sum + (item.processingTime || 0),
+        0
+      );
+
+      return {
+        timestamp,
+        count: items.length,
+        success: items.filter((item) => item.level === "success").length,
+        warning: items.filter((item) => item.level === "warning").length,
+        error: items.filter((item) => item.level === "error").length,
+        avg_confidence:
+          items.length > 0 ? Math.round(totalConfidence / items.length) : 0,
+        avg_processing_time:
+          items.length > 0 ? Math.round(totalProcessingTime / items.length) : 0,
+      };
+    })
+    .sort((a, b) => a.timestamp - b.timestamp);
 }
 
 function evaluateInterval(dates: Date[] | null): number {

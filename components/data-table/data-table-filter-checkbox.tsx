@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCompactNumber } from "@/lib/table/format";
 import { useDataTable } from "@/components/data-table/data-table";
+import { normalizeText } from "@/lib/table/filterfns";
 
 export function DataTableFilterCheckbox<TData>({
   value: _value,
@@ -29,11 +30,23 @@ export function DataTableFilterCheckbox<TData>({
   const Component = component;
 
   // filter out the options based on the input value
-  const filterOptions = options?.filter(
-    (option) =>
-      inputValue === "" ||
-      option.label.toLowerCase().includes(inputValue.toLowerCase())
-  );
+  const filterOptions = options?.filter((option) => {
+    if (inputValue === "") return true;
+
+    const optionLabel = option.label.toLowerCase();
+    const searchValue = inputValue.toLowerCase();
+
+    // Tìm chính xác với dấu
+    if (optionLabel.includes(searchValue)) {
+      return true;
+    }
+
+    // Tìm không dấu
+    const normalizedOption = normalizeText(option.label);
+    const normalizedSearch = normalizeText(inputValue);
+
+    return normalizedOption.includes(normalizedSearch);
+  });
 
   // CHECK: it could be filterValue or searchValue
   const filters = filterValue

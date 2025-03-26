@@ -122,7 +122,9 @@ export const licensePlates = pgTable("license_plates", {
   provinceName: text("province_name"),
   vehicleType: text("vehicle_type"),
   plateType: text("plate_type"),
-  plateFormat: text("plate_format"),
+  plateFormat: text("plate_format"), // Không hiển thị trong UI nhưng giữ lại trong DB
+
+  // Giữ lại nhưng không hiển thị trong UI
   plateSerial: text("plate_serial"),
   registrationNumber: text("registration_number"),
 
@@ -131,3 +133,39 @@ export const licensePlates = pgTable("license_plates", {
 });
 
 export type LicensePlate = InferSelectModel<typeof licensePlates>;
+
+export function transformDbRecordToColumnSchema(record: LicensePlate) {
+  // Determine level based on confidence value
+  let level: "success" | "warning" | "error" = "error";
+  if (record.confidence >= 90) {
+    level = "success";
+  } else if (record.confidence >= 75) {
+    level = "warning";
+  }
+
+  // Calculate a processing time (mock it since we don't have it in DB)
+  const processingTime = Math.floor(Math.random() * 1000) + 100;
+
+  // Đảm bảo rằng chuỗi trả về là chuỗi hợp lệ với Unicode chuẩn
+  const sanitizeString = (str: string | null): string => {
+    if (!str) return "";
+    return String(str).normalize("NFC");
+  };
+
+  return {
+    uuid: record.id.toString(),
+    level,
+    date: new Date(record.createdAt),
+    plateNumber: sanitizeString(record.plateNumber),
+    confidence: record.confidence,
+    provinceCode: sanitizeString(record.provinceCode),
+    provinceName: sanitizeString(record.provinceName),
+    vehicleType: sanitizeString(record.vehicleType),
+    plateType: sanitizeString(record.plateType),
+    plateFormat: sanitizeString(record.plateFormat),
+    imageUrl: record.imageUrl,
+    processedImageUrl: sanitizeString(record.processedImageUrl),
+    imageSource: "Ảnh tải lên", // Default value since we don't have this in DB
+    processingTime,
+  };
+}

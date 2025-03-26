@@ -485,7 +485,7 @@ export function DataTableInfinite<TData, TValue, TMeta>({
       </div>
       <DataTableSheetDetails
         // TODO: make it dynamic via renderSheetDetailsContent
-        title={(selectedRow?.original as ColumnSchema | undefined)?.pathname}
+        title={(selectedRow?.original as ColumnSchema | undefined)?.plateNumber}
         titleClassName="font-mono"
       >
         <DataTableSheetContent

@@ -15,6 +15,7 @@ import type { CategoricalChartFunc } from "recharts/types/chart/generateCategori
 import type { ColumnFiltersColumn } from "@tanstack/react-table";
 import { getLevelLabel } from "@/lib/request/level";
 import type { LEVELS } from "./constants/levels";
+import { LEVELS as LevelsConst } from "./constants/levels";
 
 export const description = "A stacked bar chart";
 
@@ -151,7 +152,7 @@ export function TimelineChart({
             fillOpacity={0.08}
           />
         )}
-        LEVELS
+        {LevelsConst}
       </BarChart>
     </ChartContainer>
   );

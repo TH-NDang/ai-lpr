@@ -89,3 +89,20 @@ export type SheetField<TData, TMeta = Record<string, unknown>> = {
   className?: string;
   skeletonClassName?: string;
 };
+
+export type DateFilterOptions = {
+  label: string;
+  value: string;
+};
+
+export type FilterField<TData = any> = {
+  id: string;
+  label: string;
+  value: keyof TData extends string ? keyof TData : string;
+  type: "slider" | "date" | "multi-select" | "input";
+  min?: number;
+  max?: number;
+  defaultOpen?: boolean;
+  commandDisabled?: boolean;
+  options?: { label: string; value: string | number | boolean }[];
+};
