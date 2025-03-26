@@ -15,6 +15,20 @@
       "when": 1742916107621,
       "tag": "0001_lovely_patch",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1742991306054,
+      "tag": "0002_clean_bruce_banner",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1742991403769,
+      "tag": "0003_melted_gertrude_yorkes",
+      "breakpoints": true
     }
   ]
 }
