@@ -53,6 +53,7 @@ import { useHotKey } from "@/hooks/use-hot-key";
 import { DataTableResetButton } from "@/components/data-table/data-table-reset-button";
 import { DataTableProvider } from "@/components/data-table/data-table";
 import { DataTableSheetContent } from "@/components/data-table/data-table-sheet/data-table-sheet-content";
+import { SidebarToggle } from "../sidebar-toggle";
 
 // TODO: add a possible chartGroupBy
 export interface DataTableInfiniteProps<TData, TValue, TMeta> {
@@ -294,6 +295,7 @@ export function DataTableInfinite<TData, TValue, TMeta>({
         >
           <div className="p-2 md:sticky md:top-0 border-b border-border bg-background">
             <div className="flex h-[46px] items-center justify-between gap-3">
+              <SidebarToggle />
               <p className="font-medium text-foreground px-2">Filters</p>
               <div>
                 {table.getState().columnFilters.length ? (

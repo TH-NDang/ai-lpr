@@ -2,6 +2,15 @@
 
 import type { User } from "next-auth";
 import { useRouter } from "next/navigation";
+import {
+  LucideIcon,
+  Home,
+  History,
+  MessageSquare,
+  ImageIcon,
+  Settings,
+  LogOut,
+} from "lucide-react";
 
 import { PlusIcon } from "@/components/icons";
 import { SidebarHistory } from "@/components/sidebar-history";
@@ -13,30 +22,46 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import { usePathname } from "next/navigation";
+import { Separator } from "@/components/ui/separator";
 import { NavMain } from "./nav-main";
-import { Home, Search } from "lucide-react";
 
-const navMain = [
-    {
-      title: "Search",
-      url: "#",
-      icon: Search,
-    },
-    {
-      title: "Home",
-      url: "/overview",
-      icon: Home,
+type NavItem = {
+  title: string;
+  url: string;
+  icon: LucideIcon;
+  isActive?: boolean;
+};
+
+const mainNavItems: NavItem[] = [
+  {
+    title: "Nhận Dạng Biển Số",
+    url: "/license-plate",
+    icon: ImageIcon,
+  },
+  {
+    title: "Lịch Sử Nhận Dạng",
+    url: "/overview",
+    icon: History,
+  },
+  {
+    title: "Trợ Lý AI",
+    url: "/",
+    icon: MessageSquare,
   },
 ]
 
 export function AppSidebar({ user }: { user: User | undefined }) {
   const router = useRouter();
   const { setOpenMobile } = useSidebar();
+  const pathname = usePathname();
 
   return (
     <Sidebar className="group-data-[side=left]:border-r-0">
@@ -73,7 +98,7 @@ export function AppSidebar({ user }: { user: User | undefined }) {
             </Tooltip>
           </div>
         </SidebarMenu>
-        <NavMain items={navMain} />
+        <NavMain items={mainNavItems} />
       </SidebarHeader>
       <SidebarContent>
         <SidebarHistory user={user} />

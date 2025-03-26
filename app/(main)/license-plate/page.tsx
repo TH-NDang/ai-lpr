@@ -1,8 +1,12 @@
+"use client";
+
 import { LicensePlateUpload } from "@/components/license-plate-upload";
+import { SidebarToggle } from "@/components/sidebar-toggle";
 
 export default function LicensePlatePage() {
   return (
     <div className="container mx-auto py-8">
+      <SidebarToggle />
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold">Nhận Dạng Biển Số Xe</h1>

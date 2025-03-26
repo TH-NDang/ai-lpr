@@ -1,4 +1,5 @@
-import { cookies } from 'next/headers';
+import { cookies } from "next/headers";
+import { Toaster } from "@/components/ui/sonner";
 
 import { AppSidebar } from '@/components/app-sidebar';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
@@ -26,6 +27,7 @@ export default async function Layout({
         <AppSidebar user={session?.user} />
         <SidebarInset>{children}</SidebarInset>
       </SidebarProvider>
+      <Toaster />
     </>
   );
 }
