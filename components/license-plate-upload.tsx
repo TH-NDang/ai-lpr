@@ -25,7 +25,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Upload, AlertCircle, CheckCircle2 } from "lucide-react";
+import {
+  Loader2,
+  Upload,
+  AlertCircle,
+  CheckCircle2,
+  Link as LinkIcon,
+} from "lucide-react";
 import Image from "next/image";
 
 interface PlateAnalysis {
@@ -75,6 +81,8 @@ export function LicensePlateUpload() {
   const [result, setResult] = useState<ApiResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedDetection, setSelectedDetection] = useState<string>("main");
+  const [imageUrl, setImageUrl] = useState<string>("");
+  const [inputMethod, setInputMethod] = useState<"file" | "url">("file");
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] || null;
@@ -87,23 +95,40 @@ export function LicensePlateUpload() {
   };
 
   const handleUpload = async () => {
-    if (!selectedFile) {
+    if (inputMethod === "file" && !selectedFile) {
       setError("Vui lòng chọn file ảnh trước khi nhận dạng");
+      return;
+    }
+
+    if (inputMethod === "url" && !imageUrl) {
+      setError("Vui lòng nhập URL ảnh trước khi nhận dạng");
       return;
     }
 
     setLoading(true);
     setError(null);
 
-    const formData = new FormData();
-    formData.append("file", selectedFile);
-
     try {
-      // Địa chỉ API có thể thay đổi tùy theo cấu hình của bạn
-      const response = await fetch("http://localhost:5000/process-image", {
-        method: "POST",
-        body: formData,
-      });
+      let response;
+
+      if (inputMethod === "file") {
+        const formData = new FormData();
+        formData.append("file", selectedFile!);
+
+        response = await fetch("http://localhost:5000/process-image", {
+          method: "POST",
+          body: formData,
+        });
+      } else {
+        // Xử lý URL
+        response = await fetch("http://localhost:5000/process-image-url", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ url: imageUrl }),
+        });
+      }
 
       if (!response.ok) {
         throw new Error(`Lỗi: ${response.status} ${response.statusText}`);
@@ -178,107 +203,212 @@ export function LicensePlateUpload() {
     <div className="space-y-8">
       <Card className="overflow-hidden border-2 border-muted/30">
         <CardHeader className="bg-muted/20">
-          <CardTitle className="text-xl">Tải lên ảnh biển số</CardTitle>
+          <CardTitle className="text-xl">Nhận dạng biển số xe</CardTitle>
         </CardHeader>
         <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="image">Chọn file ảnh biển số</Label>
-                <div className="relative">
-                  <Input
-                    id="image"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                    className="pl-10"
-                  />
-                  <div className="absolute left-3 top-2.5 text-muted-foreground">
-                    <Upload size={16} />
-                  </div>
-                </div>
-              </div>
-              <div
-                onClick={() => document.getElementById("image")?.click()}
-                className={`relative border-2 border-dashed rounded-lg transition-colors cursor-pointer flex items-center justify-center min-h-[160px] ${
-                  previewUrl
-                    ? "border-primary/30 bg-primary/5"
-                    : "border-muted-foreground/30 hover:border-muted-foreground/50 bg-muted/20 hover:bg-muted/30"
-                }`}
-              >
-                {previewUrl ? (
-                  <div className="w-full h-full p-2">
-                    <img
-                      src={previewUrl}
-                      alt="Preview"
-                      className="mx-auto max-h-[240px] object-contain rounded"
-                    />
-                  </div>
-                ) : (
-                  <div className="text-center p-6">
-                    <Upload className="h-10 w-10 text-muted-foreground mb-2 mx-auto" />
-                    <p className="text-sm text-muted-foreground">
-                      Kéo thả ảnh hoặc click để chọn
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Hỗ trợ: JPG, PNG, JPEG
-                    </p>
-                  </div>
-                )}
-              </div>
-              <Button
-                onClick={handleUpload}
-                disabled={loading || !selectedFile}
-                className="w-full"
-                size="lg"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Đang xử lý...
-                  </>
-                ) : (
-                  "Nhận dạng biển số"
-                )}
-              </Button>
-            </div>
+          <Tabs
+            defaultValue="file"
+            value={inputMethod}
+            onValueChange={(value) => setInputMethod(value as "file" | "url")}
+            className="mb-6"
+          >
+            <TabsList className="grid grid-cols-2 mb-4">
+              <TabsTrigger value="file">Tải lên ảnh</TabsTrigger>
+              <TabsTrigger value="url">URL ảnh</TabsTrigger>
+            </TabsList>
 
-            {result?.processed_image_url ? (
-              <div className="space-y-4">
-                <div>
-                  <Label>Kết quả nhận dạng</Label>
-                  <div className="mt-2 rounded-lg overflow-hidden border-2 border-primary/30 bg-primary/5">
-                    <img
-                      src={result.processed_image_url}
-                      alt="Kết quả nhận dạng"
-                      className="w-full object-contain max-h-[300px]"
-                    />
+            <TabsContent value="file" className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="image">Chọn file ảnh biển số</Label>
+                    <div className="relative">
+                      <Input
+                        id="image"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        className="pl-10"
+                      />
+                      <div className="absolute left-3 top-2.5 text-muted-foreground">
+                        <Upload size={16} />
+                      </div>
+                    </div>
                   </div>
+                  <div
+                    onClick={() => document.getElementById("image")?.click()}
+                    className={`relative border-2 border-dashed rounded-lg transition-colors cursor-pointer flex items-center justify-center min-h-[160px] ${
+                      previewUrl
+                        ? "border-primary/30 bg-primary/5"
+                        : "border-muted-foreground/30 hover:border-muted-foreground/50 bg-muted/20 hover:bg-muted/30"
+                    }`}
+                  >
+                    {previewUrl ? (
+                      <div className="w-full h-full p-2">
+                        <img
+                          src={previewUrl}
+                          alt="Preview"
+                          className="mx-auto max-h-[240px] object-contain rounded"
+                        />
+                      </div>
+                    ) : (
+                      <div className="text-center p-6">
+                        <Upload className="h-10 w-10 text-muted-foreground mb-2 mx-auto" />
+                        <p className="text-sm text-muted-foreground">
+                          Kéo thả ảnh hoặc click để chọn
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Hỗ trợ: JPG, PNG, JPEG
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  <Button
+                    onClick={handleUpload}
+                    disabled={loading || !selectedFile}
+                    className="w-full"
+                    size="lg"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Đang xử lý...
+                      </>
+                    ) : (
+                      "Nhận dạng biển số"
+                    )}
+                  </Button>
                 </div>
+
+                {result?.processed_image_url ? (
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Kết quả nhận dạng</Label>
+                      <div className="mt-2 rounded-lg overflow-hidden border-2 border-primary/30 bg-primary/5">
+                        <img
+                          src={result.processed_image_url}
+                          alt="Kết quả nhận dạng"
+                          className="w-full object-contain max-h-[300px]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : error ? (
+                  <div className="flex items-center justify-center h-full">
+                    <Alert variant="destructive" className="max-w-md">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center p-6 text-muted-foreground">
+                      <img
+                        src="/placeholder-license-plate.svg"
+                        alt="License plate placeholder"
+                        className="w-32 h-32 mx-auto mb-4 opacity-20"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                        }}
+                      />
+                      <p>Vui lòng tải lên ảnh biển số để nhận dạng</p>
+                    </div>
+                  </div>
+                )}
               </div>
-            ) : error ? (
-              <div className="flex items-center justify-center h-full">
-                <Alert variant="destructive" className="max-w-md">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              </div>
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center p-6 text-muted-foreground">
-                  <img
-                    src="/placeholder-license-plate.svg"
-                    alt="License plate placeholder"
-                    className="w-32 h-32 mx-auto mb-4 opacity-20"
-                    onError={(e) => {
-                      e.currentTarget.style.display = "none";
-                    }}
-                  />
-                  <p>Vui lòng tải lên ảnh biển số để nhận dạng</p>
+            </TabsContent>
+
+            <TabsContent value="url" className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="imageUrl">Nhập URL ảnh biển số</Label>
+                    <div className="relative">
+                      <Input
+                        id="imageUrl"
+                        type="url"
+                        placeholder="https://example.com/image.jpg"
+                        value={imageUrl}
+                        onChange={(e) => {
+                          setImageUrl(e.target.value);
+                          setResult(null);
+                          setError(null);
+                        }}
+                        className="pl-10"
+                      />
+                      <div className="absolute left-3 top-2.5 text-muted-foreground">
+                        <LinkIcon size={16} />
+                      </div>
+                    </div>
+                  </div>
+                  {imageUrl && (
+                    <div className="relative border-2 border-dashed rounded-lg transition-colors flex items-center justify-center min-h-[160px] border-primary/30 bg-primary/5">
+                      <div className="w-full h-full p-2">
+                        <img
+                          src={imageUrl}
+                          alt="Preview from URL"
+                          className="mx-auto max-h-[240px] object-contain rounded"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                            setError(
+                              "Không thể tải ảnh từ URL này. Vui lòng kiểm tra lại URL."
+                            );
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  <Button
+                    onClick={handleUpload}
+                    disabled={loading || !imageUrl}
+                    className="w-full"
+                    size="lg"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Đang xử lý...
+                      </>
+                    ) : (
+                      "Nhận dạng biển số"
+                    )}
+                  </Button>
                 </div>
+
+                {result?.processed_image_url ? (
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Kết quả nhận dạng</Label>
+                      <div className="mt-2 rounded-lg overflow-hidden border-2 border-primary/30 bg-primary/5">
+                        <img
+                          src={result.processed_image_url}
+                          alt="Kết quả nhận dạng"
+                          className="w-full object-contain max-h-[300px]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : error ? (
+                  <div className="flex items-center justify-center h-full">
+                    <Alert variant="destructive" className="max-w-md">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center p-6 text-muted-foreground">
+                      <LinkIcon className="h-10 w-10 text-muted-foreground mb-2 mx-auto" />
+                      <p>Nhập URL ảnh biển số để nhận dạng</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Ví dụ: https://example.com/car.jpg
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 
