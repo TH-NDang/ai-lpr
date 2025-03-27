@@ -380,7 +380,7 @@ export async function getLicensePlates({
       ) {
         query = query.where(
           between(licensePlates.createdAt, filter.date[0], filter.date[1]),
-        )
+        ) as typeof query
       }
 
       // Add text-based filters
@@ -389,7 +389,7 @@ export async function getLicensePlates({
         if (plateNumberValue !== '') {
           query = query.where(
             ilike(licensePlates.plateNumber, `%${plateNumberValue}%`),
-          )
+          ) as typeof query
         }
       }
 
@@ -398,7 +398,7 @@ export async function getLicensePlates({
         if (provinceCodeValue !== '') {
           query = query.where(
             ilike(licensePlates.provinceCode || '', `%${provinceCodeValue}%`),
-          )
+          ) as typeof query
         }
       }
 
@@ -407,7 +407,7 @@ export async function getLicensePlates({
         if (provinceNameValue !== '') {
           query = query.where(
             ilike(licensePlates.provinceName || '', `%${provinceNameValue}%`),
-          )
+          ) as typeof query
         }
       }
 
@@ -417,7 +417,7 @@ export async function getLicensePlates({
             const vehicleTypeConditions = filter.vehicleType.map((type) =>
               ilike(licensePlates.vehicleType || '', `%${type.trim()}%`),
             )
-            query = query.where(or(...vehicleTypeConditions))
+            query = query.where(or(...vehicleTypeConditions)) as typeof query
           }
         } else {
           // Đối với tiếng Việt, hỗ trợ cả có dấu và không dấu
@@ -426,7 +426,7 @@ export async function getLicensePlates({
           if (vehicleTypeValue !== '') {
             query = query.where(
               ilike(licensePlates.vehicleType || '', `%${vehicleTypeValue}%`),
-            )
+            ) as typeof query
           }
         }
       }
@@ -437,7 +437,7 @@ export async function getLicensePlates({
             const plateTypeConditions = filter.plateType.map((type) =>
               ilike(licensePlates.plateType || '', `%${type.trim()}%`),
             )
-            query = query.where(or(...plateTypeConditions))
+            query = query.where(or(...plateTypeConditions)) as typeof query
           }
         } else {
           // Đối với tiếng Việt, hỗ trợ cả có dấu và không dấu
@@ -446,7 +446,7 @@ export async function getLicensePlates({
           if (plateTypeValue !== '') {
             query = query.where(
               ilike(licensePlates.plateType || '', `%${plateTypeValue}%`),
-            )
+            ) as typeof query
           }
         }
       }
@@ -460,40 +460,42 @@ export async function getLicensePlates({
         filter.confidence.length === 2
       ) {
         const [min, max] = filter.confidence
-        query = query.where(between(licensePlates.confidence, min, max))
+        query = query.where(
+          between(licensePlates.confidence, min, max),
+        ) as typeof query
       }
 
       // Handle sorting
       if (sort) {
-        const { id, desc } = sort
+        const { id, desc: isDesc } = sort
         switch (id) {
           case 'date':
-            query = desc
-              ? query.orderBy(desc(licensePlates.createdAt))
-              : query.orderBy(asc(licensePlates.createdAt))
+            query = isDesc
+              ? (query.orderBy(desc(licensePlates.createdAt)) as typeof query)
+              : (query.orderBy(asc(licensePlates.createdAt)) as typeof query)
             break
           case 'confidence':
-            query = desc
-              ? query.orderBy(desc(licensePlates.confidence))
-              : query.orderBy(asc(licensePlates.confidence))
+            query = isDesc
+              ? (query.orderBy(desc(licensePlates.confidence)) as typeof query)
+              : (query.orderBy(asc(licensePlates.confidence)) as typeof query)
             break
           case 'plateNumber':
-            query = desc
-              ? query.orderBy(desc(licensePlates.plateNumber))
-              : query.orderBy(asc(licensePlates.plateNumber))
+            query = isDesc
+              ? (query.orderBy(desc(licensePlates.plateNumber)) as typeof query)
+              : (query.orderBy(asc(licensePlates.plateNumber)) as typeof query)
             break
           default:
-            query = query.orderBy(desc(licensePlates.createdAt)) // Default sort by newest
+            query = query.orderBy(desc(licensePlates.createdAt)) as typeof query // Default sort by newest
         }
       } else {
-        query = query.orderBy(desc(licensePlates.createdAt)) // Default sort by newest
+        query = query.orderBy(desc(licensePlates.createdAt)) as typeof query // Default sort by newest
       }
     } catch (filterError) {
       console.error('Error applying filters:', filterError)
     }
 
     // Apply pagination
-    query = query.limit(size).offset(start)
+    query = query.limit(size).offset(start) as typeof query
 
     // Execute query
     const records = await query

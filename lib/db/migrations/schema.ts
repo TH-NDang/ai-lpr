@@ -1,4 +1,4 @@
-import { pgTable, foreignKey, uuid, varchar, json, timestamp, text, boolean, serial, integer, primaryKey } from "drizzle-orm/pg-core"
+import { pgTable, foreignKey, uuid, varchar, json, timestamp, text, serial, integer, boolean, primaryKey } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 
 
@@ -31,6 +31,24 @@ export const chat = pgTable("Chat", {
 		}),
 ]);
 
+export const licensePlates = pgTable("license_plates", {
+	id: serial().primaryKey().notNull(),
+	plateNumber: text("plate_number").notNull(),
+	confidence: integer().notNull(),
+	imageUrl: text("image_url").notNull(),
+	processedImageUrl: text("processed_image_url"),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
+	provinceCode: text("province_code"),
+	provinceName: text("province_name"),
+	vehicleType: text("vehicle_type"),
+	plateType: text("plate_type"),
+	plateFormat: text("plate_format"),
+	plateSerial: text("plate_serial"),
+	registrationNumber: text("registration_number"),
+	confidenceOcr: integer("confidence_ocr"),
+});
+
 export const user = pgTable("User", {
 	id: uuid().defaultRandom().primaryKey().notNull(),
 	email: varchar({ length: 64 }).notNull(),
@@ -59,16 +77,6 @@ export const suggestion = pgTable("Suggestion", {
 			name: "Suggestion_documentId_documentCreatedAt_Document_id_createdAt_f"
 		}),
 ]);
-
-export const licensePlates = pgTable("license_plates", {
-	id: serial().primaryKey().notNull(),
-	plateNumber: text("plate_number").notNull(),
-	confidence: integer().notNull(),
-	imageUrl: text("image_url").notNull(),
-	processedImageUrl: text("processed_image_url"),
-	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
-	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
-});
 
 export const vote = pgTable("Vote", {
 	chatId: uuid().notNull(),

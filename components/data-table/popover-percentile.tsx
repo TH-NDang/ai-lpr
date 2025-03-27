@@ -12,10 +12,10 @@ import {
 } from '@/components/ui/popover'
 
 interface PopoverPercentileProps {
-  data?: ColumnSchema & { percentile?: number; latency?: number };
-  percentiles?: Record<Percentile, number>;
-  filterRows: number;
-  className?: string;
+  data?: ColumnSchema & { percentile?: number; latency?: number }
+  percentiles?: Record<Percentile, number>
+  filterRows: number
+  className?: string
 }
 
 export function PopoverPercentile({

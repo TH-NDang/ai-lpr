@@ -31,7 +31,6 @@ export function DataStreamHandler({ id }: { id: string }) {
 
     const newDeltas = dataStream.slice(lastProcessedIndex.current + 1)
     lastProcessedIndex.current = dataStream.length - 1
-
     ;(newDeltas as DataStreamDelta[]).forEach((delta: DataStreamDelta) => {
       const artifactDefinition = artifactDefinitions.find(
         (artifactDefinition) => artifactDefinition.kind === artifact.kind,
