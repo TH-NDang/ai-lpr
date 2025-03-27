@@ -401,7 +401,7 @@ export function LicensePlateUpload() {
                   {imageUrl && (
                     <div className="relative border-2 border-dashed rounded-lg transition-colors flex items-center justify-center min-h-[160px] border-primary/30 bg-primary/5">
                       <div className="w-full h-full p-2">
-                        <Image
+                        <img
                           src={imageUrl}
                           alt="Preview from URL"
                           className="mx-auto max-h-[240px] object-contain rounded"
