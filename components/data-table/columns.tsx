@@ -294,6 +294,8 @@ export const columns: ColumnDef<ColumnSchema>[] = [
                   src={value}
                   alt="Ảnh biển số gốc"
                   className="w-full h-auto rounded-md"
+                  width={100}
+                  height={100}
                 />
                 <span className="text-xs text-muted-foreground text-center">
                   Ảnh biển số gốc
@@ -337,6 +339,8 @@ export const columns: ColumnDef<ColumnSchema>[] = [
                   src={value}
                   alt="Ảnh biển số đã xử lý"
                   className="w-full h-auto rounded-md"
+                  width={100}
+                  height={100}
                 />
                 <span className="text-xs text-muted-foreground text-center">
                   Ảnh biển số đã xử lý

@@ -16,11 +16,14 @@ export const authConfig = {
       const isOnRegister = nextUrl.pathname.startsWith('/register')
       const isOnLogin = nextUrl.pathname.startsWith('/login')
 
-      if (isLoggedIn && (isOnLogin || isOnRegister)) {
+      const isOnLicensePlate = nextUrl.pathname.startsWith('/license-plate')
+      const testRoute = isOnLicensePlate
+
+      if (isLoggedIn && (isOnLogin || isOnRegister || testRoute)) {
         return Response.redirect(new URL('/', nextUrl as unknown as URL))
       }
 
-      if (isOnRegister || isOnLogin) {
+      if (isOnRegister || isOnLogin || testRoute) {
         return true // Always allow access to register and login pages
       }
 

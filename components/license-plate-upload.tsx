@@ -99,7 +99,6 @@ export function LicensePlateUpload() {
       setError('Vui lòng nhập URL ảnh trước khi nhận dạng')
       return
     }
-
     setLoading(true)
     setLoadingMessage('Đang kết nối đến server...')
     setLoadingProgress(10)
@@ -132,10 +131,9 @@ export function LicensePlateUpload() {
 
         // Thêm timeout và xử lý CORS
         const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 giây timeout
-
+        const timeoutId = setTimeout(() => controller.abort(), 30000)
         response = await fetch(
-          'https://qwwcsocgkcckcc8ogkcgc8wo.services.wfip.tech/process-image',
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/process-image`,
           {
             method: 'POST',
             body: formData,
@@ -146,10 +144,9 @@ export function LicensePlateUpload() {
       } else {
         // Xử lý URL
         const controller = new AbortController()
-        const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 giây timeout
-
+        const timeoutId = setTimeout(() => controller.abort(), 30000)
         response = await fetch(
-          'https://qwwcsocgkcckcc8ogkcgc8wo.services.wfip.tech/process-image-url',
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/process-image-url`,
           {
             method: 'POST',
             headers: {
@@ -297,7 +294,7 @@ export function LicensePlateUpload() {
                   >
                     {previewUrl ? (
                       <div className="w-full h-full p-2">
-                        <Image
+                        <img
                           src={previewUrl}
                           alt="Preview"
                           className="mx-auto max-h-[240px] object-contain rounded"
@@ -342,7 +339,7 @@ export function LicensePlateUpload() {
                     <div>
                       <Label>Kết quả nhận dạng</Label>
                       <div className="mt-2 rounded-lg overflow-hidden border-2 border-primary/30 bg-primary/5">
-                        <Image
+                        <img
                           src={result.processed_image_url}
                           alt="Kết quả nhận dạng"
                           className="w-full object-contain max-h-[300px]"
@@ -360,7 +357,7 @@ export function LicensePlateUpload() {
                 ) : (
                   <div className="flex items-center justify-center h-full">
                     <div className="text-center p-6 text-muted-foreground">
-                      <Image
+                      <img
                         src="/placeholder-license-plate.svg"
                         alt="License plate placeholder"
                         className="w-32 h-32 mx-auto mb-4 opacity-20"
@@ -436,7 +433,7 @@ export function LicensePlateUpload() {
                     <div>
                       <Label>Kết quả nhận dạng</Label>
                       <div className="mt-2 rounded-lg overflow-hidden border-2 border-primary/30 bg-primary/5">
-                        <Image
+                        <img
                           src={result.processed_image_url}
                           alt="Kết quả nhận dạng"
                           className="w-full object-contain max-h-[300px]"
