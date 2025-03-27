@@ -1,4 +1,4 @@
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Table,
   TableBody,
@@ -6,14 +6,14 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/data-table/custom/table";
+} from '@/components/data-table/custom/table'
 
 interface DataTableSkeletonProps {
   /**
    * Number of rows to render
    * @default 10
    */
-  rows?: number;
+  rows?: number
 }
 
 export function DataTableSkeleton({ rows = 10 }: DataTableSkeletonProps) {
@@ -61,5 +61,5 @@ export function DataTableSkeleton({ rows = 10 }: DataTableSkeletonProps) {
         ))}
       </TableBody>
     </Table>
-  );
+  )
 }

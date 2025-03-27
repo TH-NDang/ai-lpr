@@ -1,8 +1,8 @@
-'use client';
+'use client'
 
-import useSWR from 'swr';
-import type { UIArtifact } from '@/components/artifact';
-import { useCallback, useMemo } from 'react';
+import useSWR from 'swr'
+import type { UIArtifact } from '@/components/artifact'
+import { useCallback, useMemo } from 'react'
 
 export const initialArtifactData: UIArtifact = {
   documentId: 'init',
@@ -17,21 +17,21 @@ export const initialArtifactData: UIArtifact = {
     width: 0,
     height: 0,
   },
-};
+}
 
-type Selector<T> = (state: UIArtifact) => T;
+type Selector<T> = (state: UIArtifact) => T
 
 export function useArtifactSelector<Selected>(selector: Selector<Selected>) {
   const { data: localArtifact } = useSWR<UIArtifact>('artifact', null, {
     fallbackData: initialArtifactData,
-  });
+  })
 
   const selectedValue = useMemo(() => {
-    if (!localArtifact) return selector(initialArtifactData);
-    return selector(localArtifact);
-  }, [localArtifact, selector]);
+    if (!localArtifact) return selector(initialArtifactData)
+    return selector(localArtifact)
+  }, [localArtifact, selector])
 
-  return selectedValue;
+  return selectedValue
 }
 
 export function useArtifact() {
@@ -41,27 +41,27 @@ export function useArtifact() {
     {
       fallbackData: initialArtifactData,
     },
-  );
+  )
 
   const artifact = useMemo(() => {
-    if (!localArtifact) return initialArtifactData;
-    return localArtifact;
-  }, [localArtifact]);
+    if (!localArtifact) return initialArtifactData
+    return localArtifact
+  }, [localArtifact])
 
   const setArtifact = useCallback(
     (updaterFn: UIArtifact | ((currentArtifact: UIArtifact) => UIArtifact)) => {
       setLocalArtifact((currentArtifact) => {
-        const artifactToUpdate = currentArtifact || initialArtifactData;
+        const artifactToUpdate = currentArtifact || initialArtifactData
 
         if (typeof updaterFn === 'function') {
-          return updaterFn(artifactToUpdate);
+          return updaterFn(artifactToUpdate)
         }
 
-        return updaterFn;
-      });
+        return updaterFn
+      })
     },
     [setLocalArtifact],
-  );
+  )
 
   const { data: localArtifactMetadata, mutate: setLocalArtifactMetadata } =
     useSWR<any>(
@@ -71,7 +71,7 @@ export function useArtifact() {
       {
         fallbackData: null,
       },
-    );
+    )
 
   return useMemo(
     () => ({
@@ -81,5 +81,5 @@ export function useArtifact() {
       setMetadata: setLocalArtifactMetadata,
     }),
     [artifact, setArtifact, localArtifactMetadata, setLocalArtifactMetadata],
-  );
+  )
 }

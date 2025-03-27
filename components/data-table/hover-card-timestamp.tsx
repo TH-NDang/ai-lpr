@@ -1,46 +1,46 @@
-"use client";
+'use client'
 
-import type { ComponentPropsWithoutRef } from "react";
+import type { ComponentPropsWithoutRef } from 'react'
 
 import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
-} from "@/components/ui/hover-card";
-import { Check, Copy } from "lucide-react";
+} from '@/components/ui/hover-card'
+import { Check, Copy } from 'lucide-react'
 
-import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
-import { cn } from "@/lib/utils";
+import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
+import { cn } from '@/lib/utils'
 
-import { UTCDate } from "@date-fns/utc";
-import { format, formatDistanceToNowStrict } from "date-fns";
+import { UTCDate } from '@date-fns/utc'
+import { format, formatDistanceToNowStrict } from 'date-fns'
 
-type HoverCardContentProps = ComponentPropsWithoutRef<typeof HoverCardContent>;
+type HoverCardContentProps = ComponentPropsWithoutRef<typeof HoverCardContent>
 
 interface HoverCardTimestampProps {
-  date: Date;
-  side?: HoverCardContentProps["side"];
-  sideOffset?: HoverCardContentProps["sideOffset"];
-  align?: HoverCardContentProps["align"];
-  alignOffset?: HoverCardContentProps["alignOffset"];
-  className?: string;
+  date: Date
+  side?: HoverCardContentProps['side']
+  sideOffset?: HoverCardContentProps['sideOffset']
+  align?: HoverCardContentProps['align']
+  alignOffset?: HoverCardContentProps['alignOffset']
+  className?: string
 }
 
 export function HoverCardTimestamp({
   date,
-  side = "right",
-  align = "start",
+  side = 'right',
+  align = 'start',
   alignOffset = -4,
   sideOffset,
   className,
 }: HoverCardTimestampProps) {
-  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
 
   return (
     <HoverCard openDelay={0} closeDelay={0}>
       <HoverCardTrigger asChild>
-        <div className={cn("font-mono whitespace-nowrap", className)}>
-          {format(date, "LLL dd, y HH:mm:ss")}
+        <div className={cn('font-mono whitespace-nowrap', className)}>
+          {format(date, 'LLL dd, y HH:mm:ss')}
         </div>
       </HoverCardTrigger>
       <HoverCardContent
@@ -50,10 +50,10 @@ export function HoverCardTimestamp({
         <dl className="flex flex-col gap-1">
           <Row value={String(date.getTime())} label="Timestamp" />
           <Row
-            value={format(new UTCDate(date), "LLL dd, y HH:mm:ss")}
+            value={format(new UTCDate(date), 'LLL dd, y HH:mm:ss')}
             label="UTC"
           />
-          <Row value={format(date, "LLL dd, y HH:mm:ss")} label={timezone} />
+          <Row value={format(date, 'LLL dd, y HH:mm:ss')} label={timezone} />
           <Row
             value={formatDistanceToNowStrict(date, { addSuffix: true })}
             label="Relative"
@@ -61,19 +61,19 @@ export function HoverCardTimestamp({
         </dl>
       </HoverCardContent>
     </HoverCard>
-  );
+  )
 }
 
 function Row({ value, label }: { value: string; label: string }) {
-  const { copy, isCopied } = useCopyToClipboard();
+  const { copy, isCopied } = useCopyToClipboard()
 
   return (
     <button
       type="button"
       className="group flex w-full gap-4 text-sm justify-between items-center text-left"
       onClick={(e) => {
-        e.stopPropagation();
-        copy(value);
+        e.stopPropagation()
+        copy(value)
       }}
       aria-label={`Copy ${label} value: ${value}`}
     >
@@ -89,5 +89,5 @@ function Row({ value, label }: { value: string; label: string }) {
         {value}
       </dd>
     </button>
-  );
+  )
 }

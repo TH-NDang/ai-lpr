@@ -1,31 +1,31 @@
-import type { FilterFn } from "@tanstack/react-table";
-import { isAfter, isBefore, isSameDay } from "date-fns";
-import { isArrayOfDates } from "./is-array";
+import type { FilterFn } from '@tanstack/react-table'
+import { isAfter, isBefore, isSameDay } from 'date-fns'
+import { isArrayOfDates } from './is-array'
 
 export const inDateRange: FilterFn<any> = (row, columnId, value) => {
-  const date = new Date(row.getValue(columnId));
-  const [start, end] = value as Date[];
+  const date = new Date(row.getValue(columnId))
+  const [start, end] = value as Date[]
 
-  if (Number.isNaN(date.getTime())) return false;
+  if (Number.isNaN(date.getTime())) return false
 
   // if no end date, check if it's the same day
-  if (!end) return isSameDay(date, start);
+  if (!end) return isSameDay(date, start)
 
-  return isAfter(date, start) && isBefore(date, end);
-};
+  return isAfter(date, start) && isBefore(date, end)
+}
 
 inDateRange.autoRemove = (val: any) =>
-  !Array.isArray(val) || !val.length || !isArrayOfDates(val);
+  !Array.isArray(val) || !val.length || !isArrayOfDates(val)
 
 export const arrSome: FilterFn<any> = (row, columnId, filterValue) => {
-  if (!Array.isArray(filterValue)) return false;
-  return filterValue.some((val) => row.getValue<unknown[]>(columnId) === val);
-};
+  if (!Array.isArray(filterValue)) return false
+  return filterValue.some((val) => row.getValue<unknown[]>(columnId) === val)
+}
 
-arrSome.autoRemove = (val: any) => !Array.isArray(val) || !val?.length;
+arrSome.autoRemove = (val: any) => !Array.isArray(val) || !val?.length
 
 function testFalsey(val: any) {
-  return val === undefined || val === null || val === "";
+  return val === undefined || val === null || val === ''
 }
 
 /**
@@ -33,11 +33,11 @@ function testFalsey(val: any) {
  */
 export function normalizeText(str: string): string {
   return str
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .trim()
-    .replace(/\s+/g, " "); // Chuẩn hóa khoảng trắng, thay nhiều khoảng trắng bằng 1 khoảng trắng
+    .replace(/\s+/g, ' ') // Chuẩn hóa khoảng trắng, thay nhiều khoảng trắng bằng 1 khoảng trắng
 }
 
 /**
@@ -45,25 +45,25 @@ export function normalizeText(str: string): string {
  * Có hỗ trợ tìm kiếm tiếng Việt với cả có dấu và không dấu
  */
 export const textContains: FilterFn<any> = (row, columnId, filterValue) => {
-  const value = row.getValue(columnId);
-  if (testFalsey(value)) return false;
+  const value = row.getValue(columnId)
+  if (testFalsey(value)) return false
 
-  const itemValue = String(value).toLowerCase().trim();
-  const searchValue = String(filterValue).toLowerCase().trim();
+  const itemValue = String(value).toLowerCase().trim()
+  const searchValue = String(filterValue).toLowerCase().trim()
 
   // Trường hợp tìm kiếm chuỗi rỗng
-  if (searchValue === "") return true;
+  if (searchValue === '') return true
 
   // Tìm kiếm chuỗi chính xác (có dấu)
   if (itemValue.includes(searchValue)) {
-    return true;
+    return true
   }
 
   // Tìm kiếm không dấu (khi người dùng nhập không dấu nhưng muốn tìm kết quả có dấu)
-  const normalizedItem = normalizeText(String(value));
-  const normalizedSearch = normalizeText(String(filterValue));
+  const normalizedItem = normalizeText(String(value))
+  const normalizedSearch = normalizeText(String(filterValue))
 
-  return normalizedItem.includes(normalizedSearch);
-};
+  return normalizedItem.includes(normalizedSearch)
+}
 
-textContains.autoRemove = testFalsey;
+textContains.autoRemove = testFalsey

@@ -1,19 +1,19 @@
-import type { Metadata } from "next";
-import "@/styles/globals.css";
-import { Toaster } from "@/components/ui/sonner";
-import { Providers } from "@/components/providers";
+import type { Metadata } from 'next'
+import '@/styles/globals.css'
+import { Toaster } from '@/components/ui/sonner'
+import { Providers } from '@/components/providers'
 
 export const metadata: Metadata = {
-  title: "AI LPR",
-  description: "AI License Plate Recognition",
-};
+  title: 'AI LPR',
+  description: 'AI License Plate Recognition',
+}
 
 export const viewport = {
   maximumScale: 1, // Disable auto-zoom on mobile Safari
-};
+}
 
-const LIGHT_THEME_COLOR = "hsl(0 0% 100%)";
-const DARK_THEME_COLOR = "hsl(240deg 10% 3.92%)";
+const LIGHT_THEME_COLOR = 'hsl(0 0% 100%)'
+const DARK_THEME_COLOR = 'hsl(240deg 10% 3.92%)'
 const THEME_COLOR_SCRIPT = `\
 (function() {
   var html = document.documentElement;
@@ -30,12 +30,12 @@ const THEME_COLOR_SCRIPT = `\
   var observer = new MutationObserver(updateThemeColor);
   observer.observe(html, { attributes: true, attributeFilter: ['class'] });
   updateThemeColor();
-})();`;
+})();`
 
 export default async function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
     <html
@@ -61,5 +61,5 @@ export default async function RootLayout({
         </Providers>
       </body>
     </html>
-  );
+  )
 }

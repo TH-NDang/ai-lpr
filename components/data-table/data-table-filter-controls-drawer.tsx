@@ -7,29 +7,29 @@ import {
   DrawerFooter,
   DrawerClose,
   DrawerTrigger,
-} from "@/components/ui/drawer";
-import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
-import { Button } from "@/components/ui/button";
-import { FilterIcon } from "lucide-react";
-import { DataTableFilterControls } from "./data-table-filter-controls";
-import { useHotKey } from "@/hooks/use-hot-key";
+} from '@/components/ui/drawer'
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
+import { Button } from '@/components/ui/button'
+import { FilterIcon } from 'lucide-react'
+import { DataTableFilterControls } from './data-table-filter-controls'
+import { useHotKey } from '@/hooks/use-hot-key'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Kbd } from "@/components/data-table/custom/kbd";
-import { useMediaQuery } from "@/hooks/use-media-query";
-import { useRef } from "react";
+} from '@/components/ui/tooltip'
+import { Kbd } from '@/components/data-table/custom/kbd'
+import { useMediaQuery } from '@/hooks/use-media-query'
+import { useRef } from 'react'
 
 export function DataTableFilterControlsDrawer() {
-  const triggerButtonRef = useRef<HTMLButtonElement>(null);
-  const isMobile = useMediaQuery("(max-width: 640px)");
+  const triggerButtonRef = useRef<HTMLButtonElement>(null)
+  const isMobile = useMediaQuery('(max-width: 640px)')
 
   useHotKey(() => {
-    triggerButtonRef.current?.click();
-  }, "b");
+    triggerButtonRef.current?.click()
+  }, 'b')
 
   return (
     <Drawer>
@@ -49,7 +49,7 @@ export function DataTableFilterControlsDrawer() {
           </TooltipTrigger>
           <TooltipContent side="right">
             <p>
-              Toggle controls with{" "}
+              Toggle controls with{' '}
               <Kbd className="ml-1 text-muted-foreground group-hover:text-accent-foreground">
                 <span className="mr-1">⌘</span>
                 <span>B</span>
@@ -77,5 +77,5 @@ export function DataTableFilterControlsDrawer() {
         </DrawerFooter>
       </DrawerContent>
     </Drawer>
-  );
+  )
 }

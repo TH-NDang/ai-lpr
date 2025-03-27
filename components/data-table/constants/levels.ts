@@ -1,1 +1,1 @@
-export const LEVELS = ["success", "warning", "error"] as const;
+export const LEVELS = ['success', 'warning', 'error'] as const

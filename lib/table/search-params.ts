@@ -1,4 +1,4 @@
-import { LEVELS } from "@/components/data-table/constants/levels";
+import { LEVELS } from '@/components/data-table/constants/levels'
 // Note: import from 'nuqs/server' to avoid the "use client" directive
 import {
   createParser,
@@ -10,28 +10,28 @@ import {
   parseAsStringLiteral,
   parseAsTimestamp,
   type inferParserType,
-} from "nuqs/server";
+} from 'nuqs/server'
 
 import {
   ARRAY_DELIMITER,
   RANGE_DELIMITER,
   SLIDER_DELIMITER,
-} from "@/lib/table/delimiters";
+} from '@/lib/table/delimiters'
 
 // https://logs.run/i?sort=latency.desc
 
 export const parseAsSort = createParser({
   parse(queryValue) {
     try {
-      return JSON.parse(queryValue);
+      return JSON.parse(queryValue)
     } catch {
-      return null;
+      return null
     }
   },
   serialize(value) {
-    return JSON.stringify(value);
+    return JSON.stringify(value)
   },
-});
+})
 
 export const searchParamsParser = {
   // REQUIRED FOR SORTING & PAGINATION
@@ -54,10 +54,10 @@ export const searchParamsParser = {
   plateFormat: parseAsString,
   imageSource: parseAsString,
   processingTime: parseAsArrayOf(parseAsInteger, SLIDER_DELIMITER),
-};
+}
 
-export const searchParamsCache = createSearchParamsCache(searchParamsParser);
+export const searchParamsCache = createSearchParamsCache(searchParamsParser)
 
-export type SearchParamsType = inferParserType<typeof searchParamsParser>;
+export type SearchParamsType = inferParserType<typeof searchParamsParser>
 
-export const searchParamsSerializer = createSerializer(searchParamsParser);
+export const searchParamsSerializer = createSerializer(searchParamsParser)

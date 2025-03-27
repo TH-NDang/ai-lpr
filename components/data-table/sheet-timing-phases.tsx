@@ -1,25 +1,25 @@
-import { type TimingPhase, timingPhases } from "@/lib/request/timing";
+import { type TimingPhase, timingPhases } from '@/lib/request/timing'
 
 import {
   getTimingColor,
   getTimingLabel,
   getTimingPercentage,
-} from "@/lib/request/timing";
-import { cn } from "@/lib/utils";
-import { formatMilliseconds } from "@/lib/table/format";
+} from '@/lib/request/timing'
+import { cn } from '@/lib/utils'
+import { formatMilliseconds } from '@/lib/table/format'
 
 export function SheetTimingPhases({
   latency,
   timing,
   className,
 }: {
-  latency: number;
-  timing: Record<TimingPhase, number>;
-  className?: string;
+  latency: number
+  timing: Record<TimingPhase, number>
+  className?: string
 }) {
-  const timingPercentage = getTimingPercentage(timing, latency);
+  const timingPercentage = getTimingPercentage(timing, latency)
   return (
-    <div className={cn("space-y-1 w-full text-left", className)}>
+    <div className={cn('space-y-1 w-full text-left', className)}>
       {timingPhases.map((phase) => (
         <div
           key={phase}
@@ -39,12 +39,12 @@ export function SheetTimingPhases({
               </div>
             </div>
             <div
-              className={cn(getTimingColor(phase), "h-4")}
+              className={cn(getTimingColor(phase), 'h-4')}
               style={{ width: `${(timing[phase] / latency) * 100}%` }}
             />
           </div>
         </div>
       ))}
     </div>
-  );
+  )
 }

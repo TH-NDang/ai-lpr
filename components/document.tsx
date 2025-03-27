@@ -1,9 +1,9 @@
-import { memo } from 'react';
+import { memo } from 'react'
 
-import type { ArtifactKind } from './artifact';
-import { FileIcon, LoaderIcon, MessageIcon, PencilEditIcon } from './icons';
-import { toast } from 'sonner';
-import { useArtifact } from '@/hooks/use-artifact';
+import type { ArtifactKind } from './artifact'
+import { FileIcon, LoaderIcon, MessageIcon, PencilEditIcon } from './icons'
+import { toast } from 'sonner'
+import { useArtifact } from '@/hooks/use-artifact'
 
 const getActionText = (
   type: 'create' | 'update' | 'request-suggestions',
@@ -11,22 +11,20 @@ const getActionText = (
 ) => {
   switch (type) {
     case 'create':
-      return tense === 'present' ? 'Creating' : 'Created';
+      return tense === 'present' ? 'Creating' : 'Created'
     case 'update':
-      return tense === 'present' ? 'Updating' : 'Updated';
+      return tense === 'present' ? 'Updating' : 'Updated'
     case 'request-suggestions':
-      return tense === 'present'
-        ? 'Adding suggestions'
-        : 'Added suggestions to';
+      return tense === 'present' ? 'Adding suggestions' : 'Added suggestions to'
     default:
-      return null;
+      return null
   }
-};
+}
 
 interface DocumentToolResultProps {
-  type: 'create' | 'update' | 'request-suggestions';
-  result: { id: string; title: string; kind: ArtifactKind };
-  isReadonly: boolean;
+  type: 'create' | 'update' | 'request-suggestions'
+  result: { id: string; title: string; kind: ArtifactKind }
+  isReadonly: boolean
 }
 
 function PureDocumentToolResult({
@@ -34,7 +32,7 @@ function PureDocumentToolResult({
   result,
   isReadonly,
 }: DocumentToolResultProps) {
-  const { setArtifact } = useArtifact();
+  const { setArtifact } = useArtifact()
 
   return (
     <button
@@ -44,18 +42,18 @@ function PureDocumentToolResult({
         if (isReadonly) {
           toast.error(
             'Viewing files in shared chats is currently not supported.',
-          );
-          return;
+          )
+          return
         }
 
-        const rect = event.currentTarget.getBoundingClientRect();
+        const rect = event.currentTarget.getBoundingClientRect()
 
         const boundingBox = {
           top: rect.top,
           left: rect.left,
           width: rect.width,
           height: rect.height,
-        };
+        }
 
         setArtifact({
           documentId: result.id,
@@ -65,7 +63,7 @@ function PureDocumentToolResult({
           isVisible: true,
           status: 'idle',
           boundingBox,
-        });
+        })
       }}
     >
       <div className="text-muted-foreground mt-1">
@@ -81,15 +79,15 @@ function PureDocumentToolResult({
         {`${getActionText(type, 'past')} "${result.title}"`}
       </div>
     </button>
-  );
+  )
 }
 
-export const DocumentToolResult = memo(PureDocumentToolResult, () => true);
+export const DocumentToolResult = memo(PureDocumentToolResult, () => true)
 
 interface DocumentToolCallProps {
-  type: 'create' | 'update' | 'request-suggestions';
-  args: { title: string };
-  isReadonly: boolean;
+  type: 'create' | 'update' | 'request-suggestions'
+  args: { title: string }
+  isReadonly: boolean
 }
 
 function PureDocumentToolCall({
@@ -97,7 +95,7 @@ function PureDocumentToolCall({
   args,
   isReadonly,
 }: DocumentToolCallProps) {
-  const { setArtifact } = useArtifact();
+  const { setArtifact } = useArtifact()
 
   return (
     <button
@@ -107,24 +105,24 @@ function PureDocumentToolCall({
         if (isReadonly) {
           toast.error(
             'Viewing files in shared chats is currently not supported.',
-          );
-          return;
+          )
+          return
         }
 
-        const rect = event.currentTarget.getBoundingClientRect();
+        const rect = event.currentTarget.getBoundingClientRect()
 
         const boundingBox = {
           top: rect.top,
           left: rect.left,
           width: rect.width,
           height: rect.height,
-        };
+        }
 
         setArtifact((currentArtifact) => ({
           ...currentArtifact,
           isVisible: true,
           boundingBox,
-        }));
+        }))
       }}
     >
       <div className="flex flex-row gap-3 items-start">
@@ -145,7 +143,7 @@ function PureDocumentToolCall({
 
       <div className="animate-spin mt-1">{<LoaderIcon />}</div>
     </button>
-  );
+  )
 }
 
-export const DocumentToolCall = memo(PureDocumentToolCall, () => true);
+export const DocumentToolCall = memo(PureDocumentToolCall, () => true)

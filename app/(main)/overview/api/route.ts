@@ -1,23 +1,23 @@
-import type { NextRequest } from "next/server";
-import { searchParamsCache } from "@/lib/table/search-params";
-import { getFacetsFromData, groupChartData } from "./helpers";
-import { addDays } from "date-fns";
-import type { InfiniteQueryMeta } from "@/lib/table/query-options";
-import type { ColumnSchema, ColumnFilterSchema } from "@/lib/table/schema";
-import { getLicensePlates } from "@/lib/db/queries";
+import type { NextRequest } from 'next/server'
+import { searchParamsCache } from '@/lib/table/search-params'
+import { getFacetsFromData, groupChartData } from './helpers'
+import { addDays } from 'date-fns'
+import type { InfiniteQueryMeta } from '@/lib/table/query-options'
+import type { ColumnSchema, ColumnFilterSchema } from '@/lib/table/schema'
+import { getLicensePlates } from '@/lib/db/queries'
 
 export async function GET(req: NextRequest) {
   // Analyze query parameters from the request
-  const _search: Map<string, string> = new Map();
-  req.nextUrl.searchParams.forEach((value, key) => _search.set(key, value));
+  const _search: Map<string, string> = new Map()
+  req.nextUrl.searchParams.forEach((value, key) => _search.set(key, value))
 
-  const search = searchParamsCache.parse(Object.fromEntries(_search));
+  const search = searchParamsCache.parse(Object.fromEntries(_search))
 
   // Prepare date range for filter
   const _date =
     search.date?.length === 1
       ? ([search.date[0], addDays(search.date[0], 1)] as [Date, Date])
-      : (search.date as [Date, Date] | undefined);
+      : (search.date as [Date, Date] | undefined)
 
   // Create a filter object for db query
   const dbFilter: ColumnFilterSchema = {
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
     plateType: search.plateType || undefined,
     confidence: search.confidence || undefined,
     processingTime: search.processingTime || undefined,
-  };
+  }
 
   // Get license plate data from the database
   const { data, totalCount, filteredCount } = await getLicensePlates({
@@ -38,13 +38,13 @@ export async function GET(req: NextRequest) {
     sort: search.sort || undefined,
     start: search.start,
     size: search.size,
-  });
+  })
 
   // Group data for chart visualization
-  const chartData = groupChartData(data, _date);
+  const chartData = groupChartData(data, _date)
 
   // Get facet data for filters
-  const facets = getFacetsFromData(data);
+  const facets = getFacetsFromData(data)
 
   return Response.json({
     data,
@@ -56,7 +56,7 @@ export async function GET(req: NextRequest) {
       metadata: {}, // No additional metadata needed for license plate recognition
     },
   } satisfies {
-    data: ColumnSchema[];
-    meta: InfiniteQueryMeta;
-  });
+    data: ColumnSchema[]
+    meta: InfiniteQueryMeta
+  })
 }

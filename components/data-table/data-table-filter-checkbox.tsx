@@ -1,59 +1,59 @@
-"use client";
+'use client'
 
-import { useState } from "react";
-import type { DataTableCheckboxFilterField } from "./types";
-import { cn } from "@/lib/utils";
-import { Search } from "lucide-react";
-import { InputWithAddons } from "@/components/data-table/custom/input-with-addons";
-import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Skeleton } from "@/components/ui/skeleton";
-import { formatCompactNumber } from "@/lib/table/format";
-import { useDataTable } from "@/components/data-table/data-table";
-import { normalizeText } from "@/lib/table/filterfns";
+import { useState } from 'react'
+import type { DataTableCheckboxFilterField } from './types'
+import { cn } from '@/lib/utils'
+import { Search } from 'lucide-react'
+import { InputWithAddons } from '@/components/data-table/custom/input-with-addons'
+import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Skeleton } from '@/components/ui/skeleton'
+import { formatCompactNumber } from '@/lib/table/format'
+import { useDataTable } from '@/components/data-table/data-table'
+import { normalizeText } from '@/lib/table/filterfns'
 
 export function DataTableFilterCheckbox<TData>({
   value: _value,
   options,
   component,
 }: DataTableCheckboxFilterField<TData>) {
-  const value = _value as string;
-  const [inputValue, setInputValue] = useState("");
+  const value = _value as string
+  const [inputValue, setInputValue] = useState('')
   const { table, columnFilters, isLoading, getFacetedUniqueValues } =
-    useDataTable();
-  const column = table.getColumn(value);
+    useDataTable()
+  const column = table.getColumn(value)
   // REMINDER: avoid using column?.getFilterValue()
-  const filterValue = columnFilters.find((i) => i.id === value)?.value;
+  const filterValue = columnFilters.find((i) => i.id === value)?.value
   const facetedValue =
-    getFacetedUniqueValues?.(table, value) || column?.getFacetedUniqueValues();
+    getFacetedUniqueValues?.(table, value) || column?.getFacetedUniqueValues()
 
-  const Component = component;
+  const Component = component
 
   // filter out the options based on the input value
   const filterOptions = options?.filter((option) => {
-    if (inputValue === "") return true;
+    if (inputValue === '') return true
 
-    const optionLabel = option.label.toLowerCase();
-    const searchValue = inputValue.toLowerCase();
+    const optionLabel = option.label.toLowerCase()
+    const searchValue = inputValue.toLowerCase()
 
     // Tìm chính xác với dấu
     if (optionLabel.includes(searchValue)) {
-      return true;
+      return true
     }
 
     // Tìm không dấu
-    const normalizedOption = normalizeText(option.label);
-    const normalizedSearch = normalizeText(inputValue);
+    const normalizedOption = normalizeText(option.label)
+    const normalizedSearch = normalizeText(inputValue)
 
-    return normalizedOption.includes(normalizedSearch);
-  });
+    return normalizedOption.includes(normalizedSearch)
+  })
 
   // CHECK: it could be filterValue or searchValue
   const filters = filterValue
     ? Array.isArray(filterValue)
       ? filterValue
       : [filterValue]
-    : [];
+    : []
 
   // REMINDER: if no options are defined, while fetching data, we should show a skeleton
   if (isLoading && !filterOptions?.length)
@@ -69,9 +69,9 @@ export function DataTableFilterCheckbox<TData>({
           </div>
         ))}
       </div>
-    );
+    )
 
-  if (!filterOptions?.length) return null;
+  if (!filterOptions?.length) return null
 
   return (
     <div className="grid gap-2">
@@ -89,14 +89,14 @@ export function DataTableFilterCheckbox<TData>({
           // TODO: we shoudn't sort the options here, instead filterOptions should be sorted by default
           // .sort((a, b) => a.label.localeCompare(b.label))
           .map((option, index) => {
-            const checked = filters.includes(option.value);
+            const checked = filters.includes(option.value)
 
             return (
               <div
                 key={String(option.value)}
                 className={cn(
-                  "group relative flex items-center space-x-2 px-2 py-2.5 hover:bg-accent/50",
-                  index !== filterOptions.length - 1 ? "border-b" : undefined
+                  'group relative flex items-center space-x-2 px-2 py-2.5 hover:bg-accent/50',
+                  index !== filterOptions.length - 1 ? 'border-b' : undefined,
                 )}
               >
                 <Checkbox
@@ -105,10 +105,10 @@ export function DataTableFilterCheckbox<TData>({
                   onCheckedChange={(checked) => {
                     const newValue = checked
                       ? [...(filters || []), option.value]
-                      : filters?.filter((value) => option.value !== value);
+                      : filters?.filter((value) => option.value !== value)
                     column?.setFilterValue(
-                      newValue?.length ? newValue : undefined
-                    );
+                      newValue?.length ? newValue : undefined,
+                    )
                   }}
                 />
                 <Label
@@ -131,17 +131,17 @@ export function DataTableFilterCheckbox<TData>({
                     type="button"
                     onClick={() => column?.setFilterValue([option.value])}
                     className={cn(
-                      "absolute inset-y-0 right-0 hidden font-normal text-muted-foreground backdrop-blur-sm hover:text-foreground group-hover:block",
-                      "rounded-md ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      'absolute inset-y-0 right-0 hidden font-normal text-muted-foreground backdrop-blur-sm hover:text-foreground group-hover:block',
+                      'rounded-md ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                     )}
                   >
                     <span className="px-2">only</span>
                   </button>
                 </Label>
               </div>
-            );
+            )
           })}
       </div>
     </div>
-  );
+  )
 }

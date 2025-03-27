@@ -1,4 +1,4 @@
-"use client";
+'use client'
 
 import {
   memo,
@@ -7,22 +7,22 @@ import {
   useEffect,
   useMemo,
   useRef,
-} from "react";
-import type { ArtifactKind, UIArtifact } from "./artifact";
-import { FileIcon, FullscreenIcon, LoaderIcon } from "./icons";
-import { cn, fetcher } from "@/lib/utils";
-import type { Document } from "@/lib/db/schema";
-import { InlineDocumentSkeleton } from "./document-skeleton";
-import useSWR from "swr";
-import { DocumentToolCall, DocumentToolResult } from "./document";
-import { useArtifact } from "@/hooks/use-artifact";
-import equal from "fast-deep-equal";
-import { SpreadsheetEditor } from "./sheet-editor";
+} from 'react'
+import type { ArtifactKind, UIArtifact } from './artifact'
+import { FileIcon, FullscreenIcon, LoaderIcon } from './icons'
+import { cn, fetcher } from '@/lib/utils'
+import type { Document } from '@/lib/db/schema'
+import { InlineDocumentSkeleton } from './document-skeleton'
+import useSWR from 'swr'
+import { DocumentToolCall, DocumentToolResult } from './document'
+import { useArtifact } from '@/hooks/use-artifact'
+import equal from 'fast-deep-equal'
+import { SpreadsheetEditor } from './sheet-editor'
 
 interface DocumentPreviewProps {
-  isReadonly: boolean;
-  result?: any;
-  args?: any;
+  isReadonly: boolean
+  result?: any
+  args?: any
 }
 
 export function DocumentPreview({
@@ -30,17 +30,17 @@ export function DocumentPreview({
   result,
   args,
 }: DocumentPreviewProps) {
-  const { artifact, setArtifact } = useArtifact();
+  const { artifact, setArtifact } = useArtifact()
 
   const { data: documents, isLoading: isDocumentsFetching } = useSWR<
     Array<Document>
-  >(result ? `/api/document?id=${result.id}` : null, fetcher);
+  >(result ? `/api/document?id=${result.id}` : null, fetcher)
 
-  const previewDocument = useMemo(() => documents?.[0], [documents]);
-  const hitboxRef = useRef<HTMLDivElement>(null!);
+  const previewDocument = useMemo(() => documents?.[0], [documents])
+  const hitboxRef = useRef<HTMLDivElement>(null!)
 
   useEffect(() => {
-    const boundingBox = hitboxRef.current?.getBoundingClientRect();
+    const boundingBox = hitboxRef.current?.getBoundingClientRect()
 
     if (artifact.documentId && boundingBox) {
       setArtifact((artifact) => ({
@@ -51,9 +51,9 @@ export function DocumentPreview({
           width: boundingBox.width,
           height: boundingBox.height,
         },
-      }));
+      }))
     }
-  }, [artifact.documentId, setArtifact]);
+  }, [artifact.documentId, setArtifact])
 
   if (artifact.isVisible) {
     if (result) {
@@ -63,7 +63,7 @@ export function DocumentPreview({
           result={{ id: result.id, title: result.title, kind: result.kind }}
           isReadonly={isReadonly}
         />
-      );
+      )
     }
 
     if (args) {
@@ -73,28 +73,28 @@ export function DocumentPreview({
           args={{ title: args.title }}
           isReadonly={isReadonly}
         />
-      );
+      )
     }
   }
 
   if (isDocumentsFetching) {
-    return <LoadingSkeleton artifactKind={result.kind ?? args.kind} />;
+    return <LoadingSkeleton artifactKind={result.kind ?? args.kind} />
   }
 
   const document: Document | null = previewDocument
     ? previewDocument
-    : artifact.status === "streaming"
-    ? {
-        title: artifact.title,
-        kind: artifact.kind,
-        content: artifact.content,
-        id: artifact.documentId,
-        createdAt: new Date(),
-        userId: "noop",
-      }
-    : null;
+    : artifact.status === 'streaming'
+      ? {
+          title: artifact.title,
+          kind: artifact.kind,
+          content: artifact.content,
+          id: artifact.documentId,
+          createdAt: new Date(),
+          userId: 'noop',
+        }
+      : null
 
-  if (!document) return <LoadingSkeleton artifactKind={artifact.kind} />;
+  if (!document) return <LoadingSkeleton artifactKind={artifact.kind} />
 
   return (
     <div className="relative w-full cursor-pointer">
@@ -106,11 +106,11 @@ export function DocumentPreview({
       <DocumentHeader
         title={document.title}
         kind={document.kind}
-        isStreaming={artifact.status === "streaming"}
+        isStreaming={artifact.status === 'streaming'}
       />
       <DocumentContent document={document} />
     </div>
-  );
+  )
 }
 
 const LoadingSkeleton = ({ artifactKind }: { artifactKind: ArtifactKind }) => (
@@ -137,25 +137,25 @@ const LoadingSkeleton = ({ artifactKind }: { artifactKind: ArtifactKind }) => (
       </div>
     }
   </div>
-);
+)
 
 const PureHitboxLayer = ({
   hitboxRef,
   result,
   setArtifact,
 }: {
-  hitboxRef: React.RefObject<HTMLDivElement>;
-  result: any;
+  hitboxRef: React.RefObject<HTMLDivElement>
+  result: any
   setArtifact: (
-    updaterFn: UIArtifact | ((currentArtifact: UIArtifact) => UIArtifact)
-  ) => void;
+    updaterFn: UIArtifact | ((currentArtifact: UIArtifact) => UIArtifact),
+  ) => void
 }) => {
   const handleClick = useCallback(
     (event: MouseEvent<HTMLElement>) => {
-      const boundingBox = event.currentTarget.getBoundingClientRect();
+      const boundingBox = event.currentTarget.getBoundingClientRect()
 
       setArtifact((artifact) =>
-        artifact.status === "streaming"
+        artifact.status === 'streaming'
           ? { ...artifact, isVisible: true }
           : {
               ...artifact,
@@ -169,11 +169,11 @@ const PureHitboxLayer = ({
                 width: boundingBox.width,
                 height: boundingBox.height,
               },
-            }
-      );
+            },
+      )
     },
-    [setArtifact, result]
-  );
+    [setArtifact, result],
+  )
 
   return (
     <div
@@ -189,22 +189,22 @@ const PureHitboxLayer = ({
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
 const HitboxLayer = memo(PureHitboxLayer, (prevProps, nextProps) => {
-  if (!equal(prevProps.result, nextProps.result)) return false;
-  return true;
-});
+  if (!equal(prevProps.result, nextProps.result)) return false
+  return true
+})
 
 const PureDocumentHeader = ({
   title,
   kind,
   isStreaming,
 }: {
-  title: string;
-  kind: ArtifactKind;
-  isStreaming: boolean;
+  title: string
+  kind: ArtifactKind
+  isStreaming: boolean
 }) => (
   <div className="p-4 border rounded-t-2xl flex flex-row gap-2 items-start sm:items-center justify-between dark:bg-muted border-b-0 dark:border-zinc-700">
     <div className="flex flex-row items-start sm:items-center gap-3">
@@ -224,38 +224,38 @@ const PureDocumentHeader = ({
     </div>
     <div className="w-8" />
   </div>
-);
+)
 
 const DocumentHeader = memo(PureDocumentHeader, (prevProps, nextProps) => {
-  if (prevProps.title !== nextProps.title) return false;
-  if (prevProps.isStreaming !== nextProps.isStreaming) return false;
+  if (prevProps.title !== nextProps.title) return false
+  if (prevProps.isStreaming !== nextProps.isStreaming) return false
 
-  return true;
-});
+  return true
+})
 
 const DocumentContent = ({ document }: { document: Document }) => {
-  const { artifact } = useArtifact();
+  const { artifact } = useArtifact()
 
   const containerClassName = cn(
-    "h-[257px] overflow-y-scroll border rounded-b-2xl dark:bg-muted border-t-0 dark:border-zinc-700"
+    'h-[257px] overflow-y-scroll border rounded-b-2xl dark:bg-muted border-t-0 dark:border-zinc-700',
     // {
     //   "p-4 sm:px-14 sm:py-16": document.kind === "text",
     //   "p-0": document.kind === "code",
     // }
-  );
+  )
 
   const commonProps = {
-    content: document.content ?? "",
+    content: document.content ?? '',
     isCurrentVersion: true,
     currentVersionIndex: 0,
     status: artifact.status,
     saveContent: () => {},
     suggestions: [],
-  };
+  }
 
   return (
     <div className={containerClassName}>
-      {document.kind === "sheet" ? (
+      {document.kind === 'sheet' ? (
         <div className="flex flex-1 relative size-full p-4">
           <div className="absolute inset-0">
             <SpreadsheetEditor {...commonProps} />
@@ -263,5 +263,5 @@ const DocumentContent = ({ document }: { document: Document }) => {
         </div>
       ) : null}
     </div>
-  );
-};
+  )
+}

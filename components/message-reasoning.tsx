@@ -1,20 +1,20 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { ChevronDownIcon, LoaderIcon } from './icons';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Markdown } from './markdown';
+import { useState } from 'react'
+import { ChevronDownIcon, LoaderIcon } from './icons'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Markdown } from './markdown'
 
 interface MessageReasoningProps {
-  isLoading: boolean;
-  reasoning: string;
+  isLoading: boolean
+  reasoning: string
 }
 
 export function MessageReasoning({
   isLoading,
   reasoning,
 }: MessageReasoningProps) {
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(true)
 
   const variants = {
     collapsed: {
@@ -29,7 +29,7 @@ export function MessageReasoning({
       marginTop: '1rem',
       marginBottom: '0.5rem',
     },
-  };
+  }
 
   return (
     <div className="flex flex-col">
@@ -46,7 +46,7 @@ export function MessageReasoning({
           <div
             className="cursor-pointer"
             onClick={() => {
-              setIsExpanded(!isExpanded);
+              setIsExpanded(!isExpanded)
             }}
             role="button"
           >
@@ -72,5 +72,5 @@ export function MessageReasoning({
         )}
       </AnimatePresence>
     </div>
-  );
+  )
 }

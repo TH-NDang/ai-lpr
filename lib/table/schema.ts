@@ -2,14 +2,14 @@ import {
   ARRAY_DELIMITER,
   RANGE_DELIMITER,
   SLIDER_DELIMITER,
-} from "@/lib/table/delimiters";
-import { LEVELS } from "../../components/data-table/constants/levels";
-import { z } from "zod";
+} from '@/lib/table/delimiters'
+import { LEVELS } from '../../components/data-table/constants/levels'
+import { z } from 'zod'
 
 export const ColumnSchema = z
   .object({
     uuid: z.string(),
-    level: z.enum(["success", "warning", "error"]),
+    level: z.enum(['success', 'warning', 'error']),
     date: z.date(),
 
     // License Plate Fields
@@ -27,9 +27,9 @@ export const ColumnSchema = z
     imageSource: z.string().optional(),
     processingTime: z.number().optional(),
   })
-  .strict();
+  .strict()
 
-export type ColumnSchema = z.infer<typeof ColumnSchema>;
+export type ColumnSchema = z.infer<typeof ColumnSchema>
 
 // TODO: can we get rid of this in favor of nuqs search-params?
 export const columnFilterSchema = z.object({
@@ -61,19 +61,19 @@ export const columnFilterSchema = z.object({
     .transform((val) => val.split(SLIDER_DELIMITER))
     .pipe(z.coerce.number().array().max(2))
     .optional(),
-});
+})
 
-export type ColumnFilterSchema = z.infer<typeof columnFilterSchema>;
+export type ColumnFilterSchema = z.infer<typeof columnFilterSchema>
 
 export const FacetMetadataRowSchema = z.object({
   value: z.string(),
   total: z.number(),
-});
+})
 
 export const FacetMetadataSchema = z.object({
   min: z.number().optional(),
   max: z.number().optional(),
   rows: z.array(FacetMetadataRowSchema),
-});
+})
 
-export type FacetMetadataSchema = z.infer<typeof FacetMetadataSchema>;
+export type FacetMetadataSchema = z.infer<typeof FacetMetadataSchema>

@@ -1,26 +1,26 @@
 // Copy Pasta from: https://github.com/sadmann7/shadcn-table/blob/main/src/components/kbd.tsx#L54
-import { type VariantProps, cva } from "class-variance-authority";
-import * as React from "react";
+import { type VariantProps, cva } from 'class-variance-authority'
+import * as React from 'react'
 
-import { cn } from "@/lib/utils";
+import { cn } from '@/lib/utils'
 
 export const kbdVariants = cva(
-  "select-none rounded border px-1.5 py-px font-mono text-[0.7rem] font-normal font-mono shadow-sm disabled:opacity-50",
+  'select-none rounded border px-1.5 py-px font-mono text-[0.7rem] font-normal font-mono shadow-sm disabled:opacity-50',
   {
     variants: {
       variant: {
-        default: "bg-accent text-accent-foreground",
-        outline: "bg-background text-foreground",
+        default: 'bg-accent text-accent-foreground',
+        outline: 'bg-background text-foreground',
       },
     },
     defaultVariants: {
-      variant: "default",
+      variant: 'default',
     },
-  }
-);
+  },
+)
 
 export interface KbdProps
-  extends React.ComponentPropsWithoutRef<"kbd">,
+  extends React.ComponentPropsWithoutRef<'kbd'>,
     VariantProps<typeof kbdVariants> {
   /**
    * The title of the `abbr` element inside the `kbd` element.
@@ -28,7 +28,7 @@ export interface KbdProps
    * @type string | undefined
    * @example title="Command"
    */
-  abbrTitle?: string;
+  abbrTitle?: string
 }
 
 const Kbd = React.forwardRef<HTMLUnknownElement, KbdProps>(
@@ -47,9 +47,9 @@ const Kbd = React.forwardRef<HTMLUnknownElement, KbdProps>(
           children
         )}
       </kbd>
-    );
-  }
-);
-Kbd.displayName = "Kbd";
+    )
+  },
+)
+Kbd.displayName = 'Kbd'
 
-export { Kbd };
+export { Kbd }

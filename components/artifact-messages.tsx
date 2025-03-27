@@ -1,24 +1,24 @@
-import { PreviewMessage } from './message';
-import { useScrollToBottom } from './use-scroll-to-bottom';
-import type { Vote } from '@/lib/db/schema';
-import type { ChatRequestOptions, Message } from 'ai';
-import { memo } from 'react';
-import equal from 'fast-deep-equal';
-import type { UIArtifact } from './artifact';
+import { PreviewMessage } from './message'
+import { useScrollToBottom } from './use-scroll-to-bottom'
+import type { Vote } from '@/lib/db/schema'
+import type { ChatRequestOptions, Message } from 'ai'
+import { memo } from 'react'
+import equal from 'fast-deep-equal'
+import type { UIArtifact } from './artifact'
 
 interface ArtifactMessagesProps {
-  chatId: string;
-  isLoading: boolean;
-  votes: Array<Vote> | undefined;
-  messages: Array<Message>;
+  chatId: string
+  isLoading: boolean
+  votes: Array<Vote> | undefined
+  messages: Array<Message>
   setMessages: (
     messages: Message[] | ((messages: Message[]) => Message[]),
-  ) => void;
+  ) => void
   reload: (
     chatRequestOptions?: ChatRequestOptions,
-  ) => Promise<string | null | undefined>;
-  isReadonly: boolean;
-  artifactStatus: UIArtifact['status'];
+  ) => Promise<string | null | undefined>
+  isReadonly: boolean
+  artifactStatus: UIArtifact['status']
 }
 
 function PureArtifactMessages({
@@ -31,7 +31,7 @@ function PureArtifactMessages({
   isReadonly,
 }: ArtifactMessagesProps) {
   const [messagesContainerRef, messagesEndRef] =
-    useScrollToBottom<HTMLDivElement>();
+    useScrollToBottom<HTMLDivElement>()
 
   return (
     <div
@@ -60,7 +60,7 @@ function PureArtifactMessages({
         className="shrink-0 min-w-[24px] min-h-[24px]"
       />
     </div>
-  );
+  )
 }
 
 function areEqual(
@@ -71,14 +71,14 @@ function areEqual(
     prevProps.artifactStatus === 'streaming' &&
     nextProps.artifactStatus === 'streaming'
   )
-    return true;
+    return true
 
-  if (prevProps.isLoading !== nextProps.isLoading) return false;
-  if (prevProps.isLoading && nextProps.isLoading) return false;
-  if (prevProps.messages.length !== nextProps.messages.length) return false;
-  if (!equal(prevProps.votes, nextProps.votes)) return false;
+  if (prevProps.isLoading !== nextProps.isLoading) return false
+  if (prevProps.isLoading && nextProps.isLoading) return false
+  if (prevProps.messages.length !== nextProps.messages.length) return false
+  if (!equal(prevProps.votes, nextProps.votes)) return false
 
-  return true;
+  return true
 }
 
-export const ArtifactMessages = memo(PureArtifactMessages, areEqual);
+export const ArtifactMessages = memo(PureArtifactMessages, areEqual)

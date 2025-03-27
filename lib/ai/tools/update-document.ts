@@ -1,12 +1,12 @@
-import { type DataStreamWriter, tool } from 'ai';
-import type { Session } from 'next-auth';
-import { z } from 'zod';
-import { getDocumentById, } from '@/lib/db/queries';
-import { documentHandlersByArtifactKind } from '@/lib/artifacts/server';
+import { type DataStreamWriter, tool } from 'ai'
+import type { Session } from 'next-auth'
+import { z } from 'zod'
+import { getDocumentById } from '@/lib/db/queries'
+import { documentHandlersByArtifactKind } from '@/lib/artifacts/server'
 
 interface UpdateDocumentProps {
-  session: Session;
-  dataStream: DataStreamWriter;
+  session: Session
+  dataStream: DataStreamWriter
 }
 
 export const updateDocument = ({ session, dataStream }: UpdateDocumentProps) =>
@@ -19,26 +19,26 @@ export const updateDocument = ({ session, dataStream }: UpdateDocumentProps) =>
         .describe('The description of changes that need to be made'),
     }),
     execute: async ({ id, description }) => {
-      const document = await getDocumentById({ id });
+      const document = await getDocumentById({ id })
 
       if (!document) {
         return {
           error: 'Document not found',
-        };
+        }
       }
 
       dataStream.writeData({
         type: 'clear',
         content: document.title,
-      });
+      })
 
       const documentHandler = documentHandlersByArtifactKind.find(
         (documentHandlerByArtifactKind) =>
           documentHandlerByArtifactKind.kind === document.kind,
-      );
+      )
 
       if (!documentHandler) {
-        throw new Error(`No document handler found for kind: ${document.kind}`);
+        throw new Error(`No document handler found for kind: ${document.kind}`)
       }
 
       await documentHandler.onUpdateDocument({
@@ -46,15 +46,15 @@ export const updateDocument = ({ session, dataStream }: UpdateDocumentProps) =>
         description,
         dataStream,
         session,
-      });
+      })
 
-      dataStream.writeData({ type: 'finish', content: '' });
+      dataStream.writeData({ type: 'finish', content: '' })
 
       return {
         id,
         title: document.title,
         kind: document.kind,
         content: 'The document has been updated successfully.',
-      };
+      }
     },
-  });
+  })

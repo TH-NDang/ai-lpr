@@ -1,21 +1,14 @@
-"use client";
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
-import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+'use client'
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Progress } from '@/components/ui/progress'
+import { toast } from 'sonner'
+import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Separator } from '@/components/ui/separator'
 import {
   Table,
   TableBody,
@@ -23,209 +16,209 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+} from '@/components/ui/table'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import {
   Loader2,
   Upload,
   AlertCircle,
   CheckCircle2,
   Link as LinkIcon,
-} from "lucide-react";
-import Image from "next/image";
+} from 'lucide-react'
+import Image from 'next/image'
 
 interface PlateAnalysis {
-  original: string;
-  normalized: string;
-  province_code: string | null;
-  province_name: string | null;
-  serial: string | null;
-  number: string | null;
-  plate_type: string;
+  original: string
+  normalized: string
+  province_code: string | null
+  province_name: string | null
+  serial: string | null
+  number: string | null
+  plate_type: string
   plate_type_info: {
-    name: string;
-    description: string;
-  } | null;
-  detected_color: string | null;
-  is_valid_format: boolean;
-  format_description: string | null;
+    name: string
+    description: string
+  } | null
+  detected_color: string | null
+  is_valid_format: boolean
+  format_description: string | null
 }
 
 interface Detection {
-  plate_number: string;
-  confidence_detection: number;
-  bounding_box: [number, number, number, number];
-  plate_analysis: PlateAnalysis | null;
+  plate_number: string
+  confidence_detection: number
+  bounding_box: [number, number, number, number]
+  plate_analysis: PlateAnalysis | null
 }
 
 interface ApiResponse {
-  detections: Detection[];
-  processed_image_url: string | null;
-  error: string | null;
+  detections: Detection[]
+  processed_image_url: string | null
+  error: string | null
 }
 
 // Tạo kiểu dữ liệu mới cho kết quả xử lý
 interface ProcessedDetection {
-  plate_number: string;
-  confidence_detection: number;
-  plate_analysis: PlateAnalysis | null;
-  detections: Detection[];
-  processed_image_url: string | null;
-  error: string | null;
+  plate_number: string
+  confidence_detection: number
+  plate_analysis: PlateAnalysis | null
+  detections: Detection[]
+  processed_image_url: string | null
+  error: string | null
 }
 
 export function LicensePlateUpload() {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [loadingMessage, setLoadingMessage] = useState<string>("Đang xử lý...");
-  const [loadingProgress, setLoadingProgress] = useState<number>(0);
-  const [result, setResult] = useState<ApiResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedDetection, setSelectedDetection] = useState<string>("main");
-  const [imageUrl, setImageUrl] = useState<string>("");
-  const [inputMethod, setInputMethod] = useState<"file" | "url">("file");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [loadingMessage, setLoadingMessage] = useState<string>('Đang xử lý...')
+  const [loadingProgress, setLoadingProgress] = useState<number>(0)
+  const [result, setResult] = useState<ApiResponse | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [selectedDetection, setSelectedDetection] = useState<string>('main')
+  const [imageUrl, setImageUrl] = useState<string>('')
+  const [inputMethod, setInputMethod] = useState<'file' | 'url'>('file')
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] || null;
+    const file = event.target.files?.[0] || null
     if (file) {
-      setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
-      setResult(null);
-      setError(null);
+      setSelectedFile(file)
+      setPreviewUrl(URL.createObjectURL(file))
+      setResult(null)
+      setError(null)
     }
-  };
+  }
 
   const handleUpload = async () => {
-    if (inputMethod === "file" && !selectedFile) {
-      setError("Vui lòng chọn file ảnh trước khi nhận dạng");
-      return;
+    if (inputMethod === 'file' && !selectedFile) {
+      setError('Vui lòng chọn file ảnh trước khi nhận dạng')
+      return
     }
 
-    if (inputMethod === "url" && !imageUrl) {
-      setError("Vui lòng nhập URL ảnh trước khi nhận dạng");
-      return;
+    if (inputMethod === 'url' && !imageUrl) {
+      setError('Vui lòng nhập URL ảnh trước khi nhận dạng')
+      return
     }
 
-    setLoading(true);
-    setLoadingMessage("Đang kết nối đến server...");
-    setLoadingProgress(10);
-    setError(null);
+    setLoading(true)
+    setLoadingMessage('Đang kết nối đến server...')
+    setLoadingProgress(10)
+    setError(null)
 
     try {
-      let response;
+      let response
 
       // Loading progress simulation
       const progressInterval = setInterval(() => {
         setLoadingProgress((prev) => {
-          const newProgress = prev + 5;
+          const newProgress = prev + 5
           if (newProgress >= 90) {
-            clearInterval(progressInterval);
-            return 90;
+            clearInterval(progressInterval)
+            return 90
           }
-          return newProgress;
-        });
+          return newProgress
+        })
 
         if (loadingProgress > 30 && loadingProgress < 60) {
-          setLoadingMessage("Đang xử lý hình ảnh...");
+          setLoadingMessage('Đang xử lý hình ảnh...')
         } else if (loadingProgress >= 60) {
-          setLoadingMessage("Đang phân tích biển số...");
+          setLoadingMessage('Đang phân tích biển số...')
         }
-      }, 500);
+      }, 500)
 
-      if (inputMethod === "file") {
-        const formData = new FormData();
-        formData.append("file", selectedFile!);
+      if (inputMethod === 'file') {
+        const formData = new FormData()
+        formData.append('file', selectedFile!)
 
         // Thêm timeout và xử lý CORS
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 giây timeout
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 giây timeout
 
         response = await fetch(
-          "https://qwwcsocgkcckcc8ogkcgc8wo.services.wfip.tech/process-image",
+          'https://qwwcsocgkcckcc8ogkcgc8wo.services.wfip.tech/process-image',
           {
-            method: "POST",
+            method: 'POST',
             body: formData,
             signal: controller.signal,
-            mode: "cors",
-          }
-        ).finally(() => clearTimeout(timeoutId));
+            mode: 'cors',
+          },
+        ).finally(() => clearTimeout(timeoutId))
       } else {
         // Xử lý URL
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 giây timeout
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 giây timeout
 
         response = await fetch(
-          "https://qwwcsocgkcckcc8ogkcgc8wo.services.wfip.tech/process-image-url",
+          'https://qwwcsocgkcckcc8ogkcgc8wo.services.wfip.tech/process-image-url',
           {
-            method: "POST",
+            method: 'POST',
             headers: {
-              "Content-Type": "application/json",
+              'Content-Type': 'application/json',
             },
             body: JSON.stringify({ url: imageUrl }),
             signal: controller.signal,
-            mode: "cors",
-          }
-        ).finally(() => clearTimeout(timeoutId));
+            mode: 'cors',
+          },
+        ).finally(() => clearTimeout(timeoutId))
       }
 
       if (!response.ok) {
-        throw new Error(`Lỗi: ${response.status} ${response.statusText}`);
+        throw new Error(`Lỗi: ${response.status} ${response.statusText}`)
       }
 
-      const data: ApiResponse = await response.json();
-      clearInterval(progressInterval);
-      setLoadingProgress(100);
-      setLoadingMessage("Hoàn tất!");
-      setResult(data);
-      setSelectedDetection("main"); // Reset to main detection on new result
+      const data: ApiResponse = await response.json()
+      clearInterval(progressInterval)
+      setLoadingProgress(100)
+      setLoadingMessage('Hoàn tất!')
+      setResult(data)
+      setSelectedDetection('main') // Reset to main detection on new result
 
       if (data.error) {
-        toast.warning(data.error);
+        toast.warning(data.error)
       } else {
-        toast.success("Biển số xe đã được xử lý thành công");
+        toast.success('Biển số xe đã được xử lý thành công')
       }
     } catch (err) {
-      console.error("API Error:", err);
+      console.error('API Error:', err)
 
       if (err instanceof Error) {
-        if (err.name === "AbortError") {
-          setError("Yêu cầu bị hủy do quá thời gian chờ. Vui lòng thử lại sau.");
+        if (err.name === 'AbortError') {
+          setError('Yêu cầu bị hủy do quá thời gian chờ. Vui lòng thử lại sau.')
         } else if (
-          err.message.includes("Failed to fetch") ||
-          err.message.includes("Network Error")
+          err.message.includes('Failed to fetch') ||
+          err.message.includes('Network Error')
         ) {
           setError(
-            "Không thể kết nối đến server API. Vui lòng kiểm tra kết nối mạng hoặc xác nhận rằng server đang hoạt động."
-          );
+            'Không thể kết nối đến server API. Vui lòng kiểm tra kết nối mạng hoặc xác nhận rằng server đang hoạt động.',
+          )
         } else {
-          setError(`Lỗi: ${err.message}`);
+          setError(`Lỗi: ${err.message}`)
         }
       } else {
-        setError("Lỗi không xác định khi gửi yêu cầu đến server");
+        setError('Lỗi không xác định khi gửi yêu cầu đến server')
       }
 
-      toast.error("Không thể xử lý hình ảnh. Vui lòng thử lại sau.");
+      toast.error('Không thể xử lý hình ảnh. Vui lòng thử lại sau.')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   // Get current detection to display based on selection
   const getCurrentDetection = (): ProcessedDetection | null => {
     if (!result || !result.detections || result.detections.length === 0) {
-      return null;
+      return null
     }
 
-    let detection: Detection;
+    let detection: Detection
 
-    if (selectedDetection === "main") {
+    if (selectedDetection === 'main') {
       // Lấy detection đầu tiên nếu là main
-      detection = result.detections[0];
+      detection = result.detections[0]
     } else {
       // Lấy detection theo index
-      const index = parseInt(selectedDetection, 10);
-      detection = result.detections[index] || result.detections[0];
+      const index = Number.parseInt(selectedDetection, 10)
+      detection = result.detections[index] || result.detections[0]
     }
 
     // Trả về đối tượng với các thuộc tính cần thiết
@@ -236,27 +229,27 @@ export function LicensePlateUpload() {
       detections: result.detections,
       processed_image_url: result.processed_image_url,
       error: result.error,
-    };
-  };
+    }
+  }
 
-  const currentDetection = getCurrentDetection();
+  const currentDetection = getCurrentDetection()
 
   const translateColor = (color: string | null): string => {
-    if (!color) return "Không xác định";
+    if (!color) return 'Không xác định'
 
     switch (color) {
-      case "white":
-        return "Trắng";
-      case "yellow":
-        return "Vàng";
-      case "blue":
-        return "Xanh dương";
-      case "red":
-        return "Đỏ";
+      case 'white':
+        return 'Trắng'
+      case 'yellow':
+        return 'Vàng'
+      case 'blue':
+        return 'Xanh dương'
+      case 'red':
+        return 'Đỏ'
       default:
-        return "Không xác định";
+        return 'Không xác định'
     }
-  };
+  }
 
   return (
     <div className="space-y-8">
@@ -268,7 +261,7 @@ export function LicensePlateUpload() {
           <Tabs
             defaultValue="file"
             value={inputMethod}
-            onValueChange={(value) => setInputMethod(value as "file" | "url")}
+            onValueChange={(value) => setInputMethod(value as 'file' | 'url')}
             className="mb-6"
           >
             <TabsList className="grid grid-cols-2 mb-4">
@@ -295,16 +288,16 @@ export function LicensePlateUpload() {
                     </div>
                   </div>
                   <div
-                    onClick={() => document.getElementById("image")?.click()}
+                    onClick={() => document.getElementById('image')?.click()}
                     className={`relative border-2 border-dashed rounded-lg transition-colors cursor-pointer flex items-center justify-center min-h-[160px] ${
                       previewUrl
-                        ? "border-primary/30 bg-primary/5"
-                        : "border-muted-foreground/30 hover:border-muted-foreground/50 bg-muted/20 hover:bg-muted/30"
+                        ? 'border-primary/30 bg-primary/5'
+                        : 'border-muted-foreground/30 hover:border-muted-foreground/50 bg-muted/20 hover:bg-muted/30'
                     }`}
                   >
                     {previewUrl ? (
                       <div className="w-full h-full p-2">
-                        <img
+                        <Image
                           src={previewUrl}
                           alt="Preview"
                           className="mx-auto max-h-[240px] object-contain rounded"
@@ -333,7 +326,7 @@ export function LicensePlateUpload() {
                         {loadingMessage}
                       </>
                     ) : (
-                      "Nhận dạng biển số"
+                      'Nhận dạng biển số'
                     )}
                   </Button>
                 </div>
@@ -349,7 +342,7 @@ export function LicensePlateUpload() {
                     <div>
                       <Label>Kết quả nhận dạng</Label>
                       <div className="mt-2 rounded-lg overflow-hidden border-2 border-primary/30 bg-primary/5">
-                        <img
+                        <Image
                           src={result.processed_image_url}
                           alt="Kết quả nhận dạng"
                           className="w-full object-contain max-h-[300px]"
@@ -367,12 +360,12 @@ export function LicensePlateUpload() {
                 ) : (
                   <div className="flex items-center justify-center h-full">
                     <div className="text-center p-6 text-muted-foreground">
-                      <img
+                      <Image
                         src="/placeholder-license-plate.svg"
                         alt="License plate placeholder"
                         className="w-32 h-32 mx-auto mb-4 opacity-20"
                         onError={(e) => {
-                          e.currentTarget.style.display = "none";
+                          e.currentTarget.style.display = 'none'
                         }}
                       />
                       <p>Vui lòng tải lên ảnh biển số để nhận dạng</p>
@@ -394,9 +387,9 @@ export function LicensePlateUpload() {
                         placeholder="https://example.com/image.jpg"
                         value={imageUrl}
                         onChange={(e) => {
-                          setImageUrl(e.target.value);
-                          setResult(null);
-                          setError(null);
+                          setImageUrl(e.target.value)
+                          setResult(null)
+                          setError(null)
                         }}
                         className="pl-10"
                       />
@@ -408,15 +401,15 @@ export function LicensePlateUpload() {
                   {imageUrl && (
                     <div className="relative border-2 border-dashed rounded-lg transition-colors flex items-center justify-center min-h-[160px] border-primary/30 bg-primary/5">
                       <div className="w-full h-full p-2">
-                        <img
+                        <Image
                           src={imageUrl}
                           alt="Preview from URL"
                           className="mx-auto max-h-[240px] object-contain rounded"
                           onError={(e) => {
-                            e.currentTarget.style.display = "none";
+                            e.currentTarget.style.display = 'none'
                             setError(
-                              "Không thể tải ảnh từ URL này. Vui lòng kiểm tra lại URL."
-                            );
+                              'Không thể tải ảnh từ URL này. Vui lòng kiểm tra lại URL.',
+                            )
                           }}
                         />
                       </div>
@@ -433,7 +426,7 @@ export function LicensePlateUpload() {
                         {loadingMessage}
                       </>
                     ) : (
-                      "Nhận dạng biển số"
+                      'Nhận dạng biển số'
                     )}
                   </Button>
                 </div>
@@ -443,7 +436,7 @@ export function LicensePlateUpload() {
                     <div>
                       <Label>Kết quả nhận dạng</Label>
                       <div className="mt-2 rounded-lg overflow-hidden border-2 border-primary/30 bg-primary/5">
-                        <img
+                        <Image
                           src={result.processed_image_url}
                           alt="Kết quả nhận dạng"
                           className="w-full object-contain max-h-[300px]"
@@ -501,13 +494,13 @@ export function LicensePlateUpload() {
                         key={index}
                         className={`overflow-hidden cursor-pointer transition-all ${
                           selectedDetection ===
-                          (index === 0 ? "main" : index.toString())
-                            ? "border-2 border-primary shadow-sm"
-                            : "hover:border-primary/50"
+                          (index === 0 ? 'main' : index.toString())
+                            ? 'border-2 border-primary shadow-sm'
+                            : 'hover:border-primary/50'
                         }`}
                         onClick={() =>
                           setSelectedDetection(
-                            index === 0 ? "main" : index.toString()
+                            index === 0 ? 'main' : index.toString(),
                           )
                         }
                       >
@@ -527,7 +520,7 @@ export function LicensePlateUpload() {
                                 {detection.plate_analysis?.plate_type && (
                                   <Badge className="bg-primary/20 text-primary border-primary/20">
                                     {detection.plate_analysis.plate_type_info
-                                      ?.name || "Không xác định"}
+                                      ?.name || 'Không xác định'}
                                   </Badge>
                                 )}
                               </div>
@@ -548,7 +541,7 @@ export function LicensePlateUpload() {
                           {currentDetection.plate_number}
                         </h3>
                         <Badge variant="outline" className="text-sm">
-                          Độ tin cậy:{" "}
+                          Độ tin cậy:{' '}
                           {currentDetection.confidence_detection.toFixed(1)}%
                         </Badge>
                       </div>
@@ -568,7 +561,7 @@ export function LicensePlateUpload() {
                                 </p>
                                 <p className="font-mono font-medium">
                                   {currentDetection.plate_analysis?.original ||
-                                    "N/A"}
+                                    'N/A'}
                                 </p>
                               </div>
                               <div className="space-y-1">
@@ -576,8 +569,8 @@ export function LicensePlateUpload() {
                                   Biển số chuẩn hóa
                                 </p>
                                 <p className="font-mono font-medium">
-                                  {currentDetection.plate_analysis?.normalized ||
-                                    "N/A"}
+                                  {currentDetection.plate_analysis
+                                    ?.normalized || 'N/A'}
                                 </p>
                               </div>
                             </div>
@@ -606,7 +599,7 @@ export function LicensePlateUpload() {
                                   </p>
                                   <p className="font-medium">
                                     {currentDetection.plate_analysis
-                                      .province_name || "N/A"}
+                                      .province_name || 'N/A'}
                                   </p>
                                 </div>
                               </div>
@@ -625,7 +618,7 @@ export function LicensePlateUpload() {
                                   <span>Độ tin cậy</span>
                                   <span>
                                     {currentDetection.confidence_detection.toFixed(
-                                      1
+                                      1,
                                     )}
                                     %
                                   </span>
@@ -650,7 +643,8 @@ export function LicensePlateUpload() {
                                   </p>
                                   <Badge className="bg-primary/20 text-primary border-primary/20">
                                     {currentDetection.plate_analysis
-                                      .plate_type_info?.name || "Không xác định"}
+                                      .plate_type_info?.name ||
+                                      'Không xác định'}
                                   </Badge>
                                 </div>
                                 <div className="space-y-1">
@@ -659,7 +653,7 @@ export function LicensePlateUpload() {
                                   </p>
                                   <p className="font-medium">
                                     {currentDetection.plate_analysis
-                                      .format_description || "Không xác định"}
+                                      .format_description || 'Không xác định'}
                                   </p>
                                 </div>
                               </div>
@@ -699,7 +693,7 @@ export function LicensePlateUpload() {
                             </TableCell>
                             <TableCell>
                               {currentDetection.plate_analysis?.original ||
-                                "N/A"}
+                                'N/A'}
                             </TableCell>
                           </TableRow>
                           <TableRow>
@@ -708,7 +702,7 @@ export function LicensePlateUpload() {
                             </TableCell>
                             <TableCell>
                               {currentDetection.plate_analysis?.normalized ||
-                                "N/A"}
+                                'N/A'}
                             </TableCell>
                           </TableRow>
                           <TableRow>
@@ -728,9 +722,9 @@ export function LicensePlateUpload() {
                                 .find(
                                   (d) =>
                                     d.plate_number ===
-                                    currentDetection.plate_number
+                                    currentDetection.plate_number,
                                 )
-                                ?.bounding_box.join(", ") || "N/A"}
+                                ?.bounding_box.join(', ') || 'N/A'}
                             </TableCell>
                           </TableRow>
                           <TableRow>
@@ -739,7 +733,7 @@ export function LicensePlateUpload() {
                             </TableCell>
                             <TableCell>
                               {currentDetection.plate_analysis?.province_code ||
-                                "N/A"}
+                                'N/A'}
                             </TableCell>
                           </TableRow>
                           <TableRow>
@@ -748,7 +742,7 @@ export function LicensePlateUpload() {
                             </TableCell>
                             <TableCell>
                               {currentDetection.plate_analysis?.province_name ||
-                                "N/A"}
+                                'N/A'}
                             </TableCell>
                           </TableRow>
                           <TableRow>
@@ -757,7 +751,7 @@ export function LicensePlateUpload() {
                             </TableCell>
                             <TableCell>
                               {currentDetection.plate_analysis?.plate_type_info
-                                ?.name || "N/A"}
+                                ?.name || 'N/A'}
                             </TableCell>
                           </TableRow>
                         </TableBody>
@@ -771,5 +765,5 @@ export function LicensePlateUpload() {
         </Card>
       )}
     </div>
-  );
+  )
 }

@@ -1,10 +1,10 @@
-import { Metadata } from "next";
-import { LicensePlateUpload } from "@/components/license-plate-upload";
+import type { Metadata } from 'next'
+import { LicensePlateUpload } from '@/components/license-plate-upload'
 
 export const metadata: Metadata = {
-  title: "Nhận dạng biển số xe | AI-LPR",
-  description: "Hệ thống nhận dạng biển số xe thông minh sử dụng AI",
-};
+  title: 'Nhận dạng biển số xe | AI-LPR',
+  description: 'Hệ thống nhận dạng biển số xe thông minh sử dụng AI',
+}
 
 export default function LicensePlatePage() {
   return (
@@ -20,5 +20,5 @@ export default function LicensePlatePage() {
 
       <LicensePlateUpload />
     </div>
-  );
+  )
 }

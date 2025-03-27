@@ -1,27 +1,27 @@
-import * as React from "react";
-import { Button } from "@/components/ui/button";
-import { Check, Copy } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
-import { composeRefs } from "@/lib/table/compose-refs";
+import * as React from 'react'
+import { Button } from '@/components/ui/button'
+import { Check, Copy } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
+import { composeRefs } from '@/lib/table/compose-refs'
 
 const CopyToClipboardContainer = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ children, className, ...props }, ref) => {
-  const innerRef = React.useRef<HTMLDivElement>(null);
-  const { copy, isCopied } = useCopyToClipboard();
+  const innerRef = React.useRef<HTMLDivElement>(null)
+  const { copy, isCopied } = useCopyToClipboard()
 
   const onClick = () => {
-    const content = innerRef.current?.textContent;
-    if (content) copy(content);
-  };
+    const content = innerRef.current?.textContent
+    if (content) copy(content)
+  }
 
   return (
     <div className="relative group text-left">
       <div
         ref={composeRefs(ref, innerRef)}
-        className={cn("peer", className)}
+        className={cn('peer', className)}
         {...props}
       >
         {children}
@@ -39,9 +39,9 @@ const CopyToClipboardContainer = React.forwardRef<
         )}
       </Button>
     </div>
-  );
-});
+  )
+})
 
-CopyToClipboardContainer.displayName = "CopyToClipboardContainer";
+CopyToClipboardContainer.displayName = 'CopyToClipboardContainer'
 
-export default CopyToClipboardContainer;
+export default CopyToClipboardContainer

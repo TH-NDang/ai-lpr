@@ -1,108 +1,108 @@
-import type { JSX } from "react";
+import type { JSX } from 'react'
 
 export type SearchParams = {
-  [key: string]: string | string[] | undefined;
-};
+  [key: string]: string | string[] | undefined
+}
 
 export type DatePreset = {
-  label: string;
-  from: Date;
-  to: Date;
-  shortcut: string;
-};
+  label: string
+  from: Date
+  to: Date
+  shortcut: string
+}
 
 // TODO: we could type the value(!) especially when using enums
 export type Option = {
-  label: string;
-  value: string | boolean | number | undefined;
-};
+  label: string
+  value: string | boolean | number | undefined
+}
 
 export type Input = {
-  type: "input";
-  options?: Option[];
-};
+  type: 'input'
+  options?: Option[]
+}
 
 export type Checkbox = {
-  type: "checkbox";
-  component?: (props: Option) => JSX.Element | null;
-  options?: Option[];
-};
+  type: 'checkbox'
+  component?: (props: Option) => JSX.Element | null
+  options?: Option[]
+}
 
 export type Slider = {
-  type: "slider";
-  min: number;
-  max: number;
+  type: 'slider'
+  min: number
+  max: number
   // if options is undefined, we will provide all the steps between min and max
-  options?: Option[];
-};
+  options?: Option[]
+}
 
 export type Timerange = {
-  type: "timerange";
-  options?: Option[]; // required for TS
-  presets?: DatePreset[];
-};
+  type: 'timerange'
+  options?: Option[] // required for TS
+  presets?: DatePreset[]
+}
 
 export type Base<TData> = {
-  label: string;
-  value: keyof TData;
+  label: string
+  value: keyof TData
   /**
    * Defines if the accordion in the filter bar is open by default
    */
-  defaultOpen?: boolean;
+  defaultOpen?: boolean
   /**
    * Defines if the command input is disabled for this field
    */
-  commandDisabled?: boolean;
-};
+  commandDisabled?: boolean
+}
 
-export type DataTableCheckboxFilterField<TData> = Base<TData> & Checkbox;
-export type DataTableSliderFilterField<TData> = Base<TData> & Slider;
-export type DataTableInputFilterField<TData> = Base<TData> & Input;
-export type DataTableTimerangeFilterField<TData> = Base<TData> & Timerange;
+export type DataTableCheckboxFilterField<TData> = Base<TData> & Checkbox
+export type DataTableSliderFilterField<TData> = Base<TData> & Slider
+export type DataTableInputFilterField<TData> = Base<TData> & Input
+export type DataTableTimerangeFilterField<TData> = Base<TData> & Timerange
 
 export type DataTableFilterField<TData> =
   | DataTableCheckboxFilterField<TData>
   | DataTableSliderFilterField<TData>
   | DataTableInputFilterField<TData>
-  | DataTableTimerangeFilterField<TData>;
+  | DataTableTimerangeFilterField<TData>
 
 /** ----------------------------------------- */
 
 export type SheetField<TData, TMeta = Record<string, unknown>> = {
-  id: keyof TData;
-  label: string;
+  id: keyof TData
+  label: string
   // FIXME: rethink that! I dont think we need this as there is no input type
   // REMINDER: readonly if we only want to copy the value (e.g. uuid)
   // TODO: we might have some values that are not in the data but can be computed
-  type: "readonly" | "input" | "checkbox" | "slider" | "timerange";
+  type: 'readonly' | 'input' | 'checkbox' | 'slider' | 'timerange'
   component?: (
     // REMINDER: this is used to pass additional data like the `InfiniteQueryMeta`
     props: TData & {
       metadata?: {
-        totalRows: number;
-        filterRows: number;
-        totalRowsFetched: number;
-      } & TMeta;
-    }
-  ) => JSX.Element | null | string;
-  condition?: (props: TData) => boolean;
-  className?: string;
-  skeletonClassName?: string;
-};
+        totalRows: number
+        filterRows: number
+        totalRowsFetched: number
+      } & TMeta
+    },
+  ) => JSX.Element | null | string
+  condition?: (props: TData) => boolean
+  className?: string
+  skeletonClassName?: string
+}
 
 export type DateFilterOptions = {
-  label: string;
-  value: string;
-};
+  label: string
+  value: string
+}
 
 export type FilterField<TData = any> = {
-  id: string;
-  label: string;
-  value: keyof TData extends string ? keyof TData : string;
-  type: "slider" | "date" | "multi-select" | "input";
-  min?: number;
-  max?: number;
-  defaultOpen?: boolean;
-  commandDisabled?: boolean;
-  options?: { label: string; value: string | number | boolean }[];
-};
+  id: string
+  label: string
+  value: keyof TData extends string ? keyof TData : string
+  type: 'slider' | 'date' | 'multi-select' | 'input'
+  min?: number
+  max?: number
+  defaultOpen?: boolean
+  commandDisabled?: boolean
+  options?: { label: string; value: string | number | boolean }[]
+}

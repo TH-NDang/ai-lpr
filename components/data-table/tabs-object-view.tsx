@@ -1,12 +1,12 @@
-import { Braces, TableProperties } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Braces, TableProperties } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
-import { KeyValueTable } from "./key-value-table";
-import CopyToClipboardContainer from "@/components/data-table/custom/copy-to-clipboard-container";
+import { KeyValueTable } from './key-value-table'
+import CopyToClipboardContainer from '@/components/data-table/custom/copy-to-clipboard-container'
 
 interface TabsObjectViewProps {
-  data: Record<string, string>;
-  className?: string;
+  data: Record<string, string>
+  className?: string
 }
 
 export function TabsObjectView({ data, className }: TabsObjectViewProps) {
@@ -38,5 +38,5 @@ export function TabsObjectView({ data, className }: TabsObjectViewProps) {
         </CopyToClipboardContainer>
       </TabsContent>
     </Tabs>
-  );
+  )
 }

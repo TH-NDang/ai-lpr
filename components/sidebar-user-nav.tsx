@@ -1,9 +1,9 @@
-'use client';
-import { ChevronUp } from 'lucide-react';
-import Image from 'next/image';
-import type { User } from 'next-auth';
-import { signOut } from 'next-auth/react';
-import { useTheme } from 'next-themes';
+'use client'
+import { ChevronUp } from 'lucide-react'
+import Image from 'next/image'
+import type { User } from 'next-auth'
+import { signOut } from 'next-auth/react'
+import { useTheme } from 'next-themes'
 
 import {
   DropdownMenu,
@@ -11,15 +11,15 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '@/components/ui/dropdown-menu'
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from '@/components/ui/sidebar';
+} from '@/components/ui/sidebar'
 
 export function SidebarUserNav({ user }: { user: User }) {
-  const { setTheme, theme } = useTheme();
+  const { setTheme, theme } = useTheme()
 
   return (
     <SidebarMenu>
@@ -56,7 +56,7 @@ export function SidebarUserNav({ user }: { user: User }) {
                 onClick={() => {
                   signOut({
                     redirectTo: '/',
-                  });
+                  })
                 }}
               >
                 Sign out
@@ -66,5 +66,5 @@ export function SidebarUserNav({ user }: { user: User }) {
         </DropdownMenu>
       </SidebarMenuItem>
     </SidebarMenu>
-  );
+  )
 }

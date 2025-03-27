@@ -1,41 +1,41 @@
-"use client";
+'use client'
 
-import { Button } from "@/components/ui/button";
+import { Button } from '@/components/ui/button'
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/ui/tooltip";
+} from '@/components/ui/tooltip'
 import {
   FilterIcon,
   LoaderCircle,
   PanelLeftClose,
   PanelLeftOpen,
-} from "lucide-react";
-import { DataTableViewOptions } from "./data-table-view-options";
-import { Kbd } from "@/components/data-table/custom/kbd";
-import { DataTableResetButton } from "./data-table-reset-button";
-import { useHotKey } from "@/hooks/use-hot-key";
-import { useMemo } from "react";
-import { formatCompactNumber } from "@/lib/table/format";
-import { DataTableFilterControlsDrawer } from "./data-table-filter-controls-drawer";
-import { useDataTable } from "@/components/data-table/data-table";
-import { useControls } from "@/components/data-table/controls";
+} from 'lucide-react'
+import { DataTableViewOptions } from './data-table-view-options'
+import { Kbd } from '@/components/data-table/custom/kbd'
+import { DataTableResetButton } from './data-table-reset-button'
+import { useHotKey } from '@/hooks/use-hot-key'
+import { useMemo } from 'react'
+import { formatCompactNumber } from '@/lib/table/format'
+import { DataTableFilterControlsDrawer } from './data-table-filter-controls-drawer'
+import { useDataTable } from '@/components/data-table/data-table'
+import { useControls } from '@/components/data-table/controls'
 
 export function DataTableToolbar() {
-  const { table, isLoading, columnFilters } = useDataTable();
-  const { open, setOpen } = useControls();
-  useHotKey(() => setOpen((prev) => !prev), "b");
-  const filters = table.getState().columnFilters;
+  const { table, isLoading, columnFilters } = useDataTable()
+  const { open, setOpen } = useControls()
+  useHotKey(() => setOpen((prev) => !prev), 'b')
+  const filters = table.getState().columnFilters
 
   const rows = useMemo(
     () => ({
       total: table.getCoreRowModel().rows.length,
       filtered: table.getFilteredRowModel().rows.length,
     }),
-    [table]
-  );
+    [table],
+  )
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-4">
@@ -66,7 +66,7 @@ export function DataTableToolbar() {
             </TooltipTrigger>
             <TooltipContent side="right">
               <p>
-                Toggle controls with{" "}
+                Toggle controls with{' '}
                 <Kbd className="ml-1 text-muted-foreground group-hover:text-accent-foreground">
                   <span className="mr-1">⌘</span>
                   <span>B</span>
@@ -81,7 +81,7 @@ export function DataTableToolbar() {
         <p className="text-sm text-muted-foreground">
           <span className="font-medium font-mono">
             {formatCompactNumber(rows.filtered)}
-          </span>{" "}
+          </span>{' '}
           of <span className="font-medium font-mono">{rows.total}</span> row(s)
           filtered
         </p>
@@ -94,5 +94,5 @@ export function DataTableToolbar() {
         <DataTableViewOptions />
       </div>
     </div>
-  );
+  )
 }

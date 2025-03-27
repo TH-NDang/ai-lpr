@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { motion } from 'framer-motion'
 
 export const Overview = () => {
   return (
@@ -14,5 +14,5 @@ export const Overview = () => {
         {/* !TODO: For some populate features  */}
       </div>
     </motion.div>
-  );
-};
+  )
+}

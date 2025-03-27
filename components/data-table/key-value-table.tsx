@@ -3,12 +3,12 @@ import {
   TableBody,
   TableCell,
   TableRow,
-} from "@/components/data-table/custom/table";
-import { useCopyToClipboard } from "@/hooks/use-copy-to-clipboard";
-import { Check, Copy } from "lucide-react";
+} from '@/components/data-table/custom/table'
+import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
+import { Check, Copy } from 'lucide-react'
 
 interface KeyValueTableProps {
-  data: Record<string, string>;
+  data: Record<string, string>
 }
 export function KeyValueTable({ data }: KeyValueTableProps) {
   return (
@@ -17,24 +17,24 @@ export function KeyValueTable({ data }: KeyValueTableProps) {
         <Table>
           <TableBody>
             {Object.entries(data).map(([key, value]) => {
-              return <RowAction key={key} label={key} value={value} />;
+              return <RowAction key={key} label={key} value={value} />
             })}
           </TableBody>
         </Table>
       </div>
     </div>
-  );
+  )
 }
 
 function RowAction({ label, value }: { label: string; value: string }) {
-  const { copy, isCopied } = useCopyToClipboard();
+  const { copy, isCopied } = useCopyToClipboard()
 
   return (
     <TableRow
       className="group *:border-border hover:bg-transparent [&>:not(:last-child)]:border-r text-left"
       onClick={(e) => {
-        e.stopPropagation();
-        copy(value);
+        e.stopPropagation()
+        copy(value)
       }}
     >
       <TableCell className="bg-muted/50 py-1 font-medium font-mono">
@@ -51,5 +51,5 @@ function RowAction({ label, value }: { label: string; value: string }) {
         </div>
       </TableCell>
     </TableRow>
-  );
+  )
 }

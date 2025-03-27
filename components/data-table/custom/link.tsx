@@ -1,28 +1,28 @@
-import NextLink, { type LinkProps as NextLinkProps } from "next/link";
-import { cn } from "@/lib/utils";
-import { ArrowUpRight } from "lucide-react";
-import { forwardRef, type ReactNode } from "react";
+import NextLink, { type LinkProps as NextLinkProps } from 'next/link'
+import { cn } from '@/lib/utils'
+import { ArrowUpRight } from 'lucide-react'
+import { forwardRef, type ReactNode } from 'react'
 
 export interface LinkProps extends NextLinkProps {
-  className?: string;
-  children?: ReactNode;
-  hideArrow?: boolean;
+  className?: string
+  children?: ReactNode
+  hideArrow?: boolean
 }
 
 const Link = forwardRef<HTMLAnchorElement, LinkProps>(
   ({ className, href, children, hideArrow, ...props }, ref) => {
     const isInternal =
-      href?.toString().startsWith("/") || href?.toString().startsWith("#");
+      href?.toString().startsWith('/') || href?.toString().startsWith('#')
     const externalLinkProps = !isInternal
-      ? { target: "_blank", rel: "noreferrer" }
-      : undefined;
+      ? { target: '_blank', rel: 'noreferrer' }
+      : undefined
 
     return (
       <NextLink
         className={cn(
-          "group text-foreground underline underline-offset-4 decoration-border hover:decoration-foreground",
-          "ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-md",
-          className
+          'group text-foreground underline underline-offset-4 decoration-border hover:decoration-foreground',
+          'ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-md',
+          className,
         )}
         ref={ref}
         href={href}
@@ -34,10 +34,10 @@ const Link = forwardRef<HTMLAnchorElement, LinkProps>(
           <ArrowUpRight className="text-muted-foreground w-4 h-4 inline-block ml-0.5 group-hover:text-foreground group-hover:-translate-y-px group-hover:translate-x-px" />
         ) : null}
       </NextLink>
-    );
-  }
-);
+    )
+  },
+)
 
-Link.displayName = "Link";
+Link.displayName = 'Link'
 
-export { Link };
+export { Link }

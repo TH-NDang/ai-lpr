@@ -1,22 +1,22 @@
-"use client";
+'use client'
 
-import type { DataTableSliderFilterField } from "./types";
-import { InputWithAddons } from "@/components/data-table/custom/input-with-addons";
-import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/data-table/custom/slider";
-import { isArrayOfNumbers } from "@/lib/table/is-array";
-import { useEffect, useState } from "react";
-import { useDebounce } from "@/hooks/use-debounce";
-import { useDataTable } from "@/components/data-table/data-table";
+import type { DataTableSliderFilterField } from './types'
+import { InputWithAddons } from '@/components/data-table/custom/input-with-addons'
+import { Label } from '@/components/ui/label'
+import { Slider } from '@/components/data-table/custom/slider'
+import { isArrayOfNumbers } from '@/lib/table/is-array'
+import { useEffect, useState } from 'react'
+import { useDebounce } from '@/hooks/use-debounce'
+import { useDataTable } from '@/components/data-table/data-table'
 
 function getFilter(filterValue: unknown) {
-  return typeof filterValue === "number"
+  return typeof filterValue === 'number'
     ? [filterValue, filterValue]
     : Array.isArray(filterValue) && isArrayOfNumbers(filterValue)
-    ? filterValue.length === 1
-      ? [filterValue[0], filterValue[0]]
-      : filterValue
-    : null;
+      ? filterValue.length === 1
+        ? [filterValue[0], filterValue[0]]
+        : filterValue
+      : null
 }
 
 // TODO: discuss if we even need the `defaultMin` and `defaultMax`
@@ -25,40 +25,43 @@ export function DataTableFilterSlider<TData>({
   min: defaultMin,
   max: defaultMax,
 }: DataTableSliderFilterField<TData>) {
-  const value = _value as string;
-  const { table, columnFilters, getFacetedMinMaxValues } = useDataTable();
-  const column = table.getColumn(value);
-  const filterValue = columnFilters.find((i) => i.id === value)?.value;
-  const filters = getFilter(filterValue);
-  const [input, setInput] = useState<number[] | null>(filters);
+  const value = _value as string
+  const { table, columnFilters, getFacetedMinMaxValues } = useDataTable()
+  const column = table.getColumn(value)
+  const filterValue = columnFilters.find((i) => i.id === value)?.value
+  const filters = getFilter(filterValue)
+  const [input, setInput] = useState<number[] | null>(filters)
   const [min, max] = getFacetedMinMaxValues?.(table, value) ||
-    column?.getFacetedMinMaxValues() || [defaultMin, defaultMax];
+    column?.getFacetedMinMaxValues() || [defaultMin, defaultMax]
 
-  const debouncedInput = useDebounce(input, 500);
+  const debouncedInput = useDebounce(input, 500)
 
   useEffect(() => {
     if (debouncedInput?.length === 2) {
-      column?.setFilterValue(debouncedInput);
+      column?.setFilterValue(debouncedInput)
     }
-  }, [debouncedInput, column]);
+  }, [debouncedInput, column])
 
   useEffect(() => {
     if (debouncedInput?.length !== 2) {
     } else if (!filters) {
-      setInput(null);
+      setInput(null)
     } else if (
       debouncedInput[0] !== filters[0] ||
       debouncedInput[1] !== filters[1]
     ) {
-      setInput(filters);
+      setInput(filters)
     }
-  }, [filters, debouncedInput]);
+  }, [filters, debouncedInput])
 
   return (
     <div className="grid gap-2">
       <div className="flex items-center gap-4">
         <div className="grid w-full gap-1.5">
-          <Label htmlFor={`min-${value}`} className="px-2 text-muted-foreground">
+          <Label
+            htmlFor={`min-${value}`}
+            className="px-2 text-muted-foreground"
+          >
             Min.
           </Label>
           <InputWithAddons
@@ -77,7 +80,10 @@ export function DataTableFilterSlider<TData>({
           />
         </div>
         <div className="grid w-full gap-1.5">
-          <Label htmlFor={`max-${value}`} className="px-2 text-muted-foreground">
+          <Label
+            htmlFor={`max-${value}`}
+            className="px-2 text-muted-foreground"
+          >
             Max.
           </Label>
           <InputWithAddons
@@ -103,5 +109,5 @@ export function DataTableFilterSlider<TData>({
         onValueChange={(values) => setInput(values)}
       />
     </div>
-  );
+  )
 }

@@ -1,26 +1,26 @@
-"use client";
+'use client'
 
-import * as React from "react";
-import { cn } from "@/lib/utils";
-import type { Table } from "@tanstack/react-table";
-import { DataTableSheetRowAction } from "./data-table-sheet-row-action";
-import type { DataTableFilterField, SheetField } from "../types";
-import { SheetDetailsContentSkeleton } from "./data-table-sheet-skeleton";
+import * as React from 'react'
+import { cn } from '@/lib/utils'
+import type { Table } from '@tanstack/react-table'
+import { DataTableSheetRowAction } from './data-table-sheet-row-action'
+import type { DataTableFilterField, SheetField } from '../types'
+import { SheetDetailsContentSkeleton } from './data-table-sheet-skeleton'
 
 interface DataTableSheetContentProps<TData, TMeta>
   extends React.HTMLAttributes<HTMLDListElement> {
-  data?: TData;
-  table: Table<TData>;
-  fields: SheetField<TData, TMeta>[];
-  filterFields: DataTableFilterField<TData>[];
+  data?: TData
+  table: Table<TData>
+  fields: SheetField<TData, TMeta>[]
+  filterFields: DataTableFilterField<TData>[]
   // totalRows: number;
   // filterRows: number;
   // totalRowsFetched: number;
   metadata?: TMeta & {
-    totalRows: number;
-    filterRows: number;
-    totalRowsFetched: number;
-  };
+    totalRows: number
+    filterRows: number
+    totalRowsFetched: number
+  }
 }
 
 export function DataTableSheetContent<TData, TMeta>({
@@ -32,23 +32,23 @@ export function DataTableSheetContent<TData, TMeta>({
   metadata,
   ...props
 }: DataTableSheetContentProps<TData, TMeta>) {
-  if (!data) return <SheetDetailsContentSkeleton fields={fields} />;
+  if (!data) return <SheetDetailsContentSkeleton fields={fields} />
 
   return (
-    <dl className={cn("divide-y", className)} {...props}>
+    <dl className={cn('divide-y', className)} {...props}>
       {fields.map((field) => {
-        if (field.condition && !field.condition(data)) return null;
+        if (field.condition && !field.condition(data)) return null
 
-        const Component = field.component;
-        const value = String(data[field.id]);
+        const Component = field.component
+        const value = String(data[field.id])
 
         return (
           <div key={field.id.toString()}>
-            {field.type === "readonly" ? (
+            {field.type === 'readonly' ? (
               <div
                 className={cn(
-                  "flex gap-4 my-1 py-1 text-sm justify-between items-center w-full",
-                  field.className
+                  'flex gap-4 my-1 py-1 text-sm justify-between items-center w-full',
+                  field.className,
                 )}
               >
                 <dt className="shrink-0 text-muted-foreground">
@@ -69,8 +69,8 @@ export function DataTableSheetContent<TData, TMeta>({
                 value={value}
                 table={table}
                 className={cn(
-                  "flex gap-4 my-1 py-1 text-sm justify-between items-center w-full",
-                  field.className
+                  'flex gap-4 my-1 py-1 text-sm justify-between items-center w-full',
+                  field.className,
                 )}
               >
                 <dt className="shrink-0 text-muted-foreground">
@@ -86,8 +86,8 @@ export function DataTableSheetContent<TData, TMeta>({
               </DataTableSheetRowAction>
             )}
           </div>
-        );
+        )
       })}
     </dl>
-  );
+  )
 }
