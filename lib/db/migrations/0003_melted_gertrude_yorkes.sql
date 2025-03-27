@@ -1,1 +1,0 @@
-ALTER TABLE "license_plates" ADD COLUMN "registration_number" text;

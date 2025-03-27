@@ -5,36 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1741160712317,
-      "tag": "0000_worthless_leper_queen",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1742916107621,
-      "tag": "0001_lovely_patch",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1742991306054,
-      "tag": "0002_clean_bruce_banner",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1742991403769,
-      "tag": "0003_melted_gertrude_yorkes",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1743003805936,
-      "tag": "0004_complex_prism",
+      "when": 1743104722870,
+      "tag": "0000_dashing_timeslip",
       "breakpoints": true
     }
   ]

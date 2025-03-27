@@ -16,6 +16,24 @@ CREATE TABLE "Document" (
 	CONSTRAINT "Document_id_createdAt_pk" PRIMARY KEY("id","createdAt")
 );
 --> statement-breakpoint
+CREATE TABLE "license_plates" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"plate_number" text NOT NULL,
+	"confidence" integer NOT NULL,
+	"confidence_ocr" integer,
+	"image_url" text NOT NULL,
+	"processed_image_url" text,
+	"province_code" text,
+	"province_name" text,
+	"vehicle_type" text,
+	"plate_type" text,
+	"plate_format" text,
+	"plate_serial" text,
+	"registration_number" text,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "Message" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"chatId" uuid NOT NULL,
