@@ -12,10 +12,10 @@ import {
 } from '@/components/ui/popover'
 
 interface PopoverPercentileProps {
-  data?: ColumnSchema
-  percentiles?: Record<Percentile, number>
-  filterRows: number
-  className?: string
+  data?: ColumnSchema & { percentile?: number; latency?: number };
+  percentiles?: Record<Percentile, number>;
+  filterRows: number;
+  className?: string;
 }
 
 export function PopoverPercentile({
@@ -31,7 +31,7 @@ export function PopoverPercentile({
       ])
     : []
 
-  data?.percentile
+  data?.percentile && data.latency !== undefined
     ? percentileArray.push([data.percentile, data.latency])
     : null
   percentileArray.sort((a, b) => a[0] - b[0])
