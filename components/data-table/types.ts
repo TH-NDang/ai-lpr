@@ -23,10 +23,10 @@ export type Input = {
 }
 
 export type Checkbox = {
-  type: 'checkbox'
-  component?: (props: Option) => JSX.Element | null
-  options?: Option[]
-}
+  type: "checkbox" | "multi-select";
+  component?: (props: Option) => JSX.Element | null;
+  options?: Option[];
+};
 
 export type Slider = {
   type: 'slider'
@@ -37,10 +37,10 @@ export type Slider = {
 }
 
 export type Timerange = {
-  type: 'timerange'
-  options?: Option[] // required for TS
-  presets?: DatePreset[]
-}
+  type: "timerange" | "date";
+  options?: Option[]; // required for TS
+  presets?: DatePreset[];
+};
 
 export type Base<TData> = {
   label: string
