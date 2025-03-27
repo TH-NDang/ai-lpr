@@ -78,6 +78,8 @@ export function LicensePlateUpload() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState<string>("Đang xử lý...");
+  const [loadingProgress, setLoadingProgress] = useState<number>(0);
   const [result, setResult] = useState<ApiResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedDetection, setSelectedDetection] = useState<string>("main");
@@ -106,28 +108,65 @@ export function LicensePlateUpload() {
     }
 
     setLoading(true);
+    setLoadingMessage("Đang kết nối đến server...");
+    setLoadingProgress(10);
     setError(null);
 
     try {
       let response;
 
+      // Loading progress simulation
+      const progressInterval = setInterval(() => {
+        setLoadingProgress((prev) => {
+          const newProgress = prev + 5;
+          if (newProgress >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return newProgress;
+        });
+
+        if (loadingProgress > 30 && loadingProgress < 60) {
+          setLoadingMessage("Đang xử lý hình ảnh...");
+        } else if (loadingProgress >= 60) {
+          setLoadingMessage("Đang phân tích biển số...");
+        }
+      }, 500);
+
       if (inputMethod === "file") {
         const formData = new FormData();
         formData.append("file", selectedFile!);
 
-        response = await fetch("http://localhost:5000/process-image", {
-          method: "POST",
-          body: formData,
-        });
+        // Thêm timeout và xử lý CORS
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 giây timeout
+
+        response = await fetch(
+          "https://qwwcsocgkcckcc8ogkcgc8wo.services.wfip.tech/process-image",
+          {
+            method: "POST",
+            body: formData,
+            signal: controller.signal,
+            mode: "cors",
+          }
+        ).finally(() => clearTimeout(timeoutId));
       } else {
         // Xử lý URL
-        response = await fetch("http://localhost:5000/process-image-url", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ url: imageUrl }),
-        });
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 giây timeout
+
+        response = await fetch(
+          "https://qwwcsocgkcckcc8ogkcgc8wo.services.wfip.tech/process-image-url",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ url: imageUrl }),
+            signal: controller.signal,
+            mode: "cors",
+          }
+        ).finally(() => clearTimeout(timeoutId));
       }
 
       if (!response.ok) {
@@ -135,6 +174,9 @@ export function LicensePlateUpload() {
       }
 
       const data: ApiResponse = await response.json();
+      clearInterval(progressInterval);
+      setLoadingProgress(100);
+      setLoadingMessage("Hoàn tất!");
       setResult(data);
       setSelectedDetection("main"); // Reset to main detection on new result
 
@@ -144,9 +186,26 @@ export function LicensePlateUpload() {
         toast.success("Biển số xe đã được xử lý thành công");
       }
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Lỗi khi gửi yêu cầu đến server"
-      );
+      console.error("API Error:", err);
+
+      if (err instanceof Error) {
+        if (err.name === "AbortError") {
+          setError("Yêu cầu bị hủy do quá thời gian chờ. Vui lòng thử lại sau.");
+        } else if (
+          err.message.includes("Failed to fetch") ||
+          err.message.includes("Network Error")
+        ) {
+          setError(
+            "Không thể kết nối đến server API. Vui lòng kiểm tra kết nối mạng hoặc xác nhận rằng server đang hoạt động."
+          );
+        } else {
+          setError(`Lỗi: ${err.message}`);
+        }
+      } else {
+        setError("Lỗi không xác định khi gửi yêu cầu đến server");
+      }
+
+      toast.error("Không thể xử lý hình ảnh. Vui lòng thử lại sau.");
     } finally {
       setLoading(false);
     }
@@ -265,20 +324,25 @@ export function LicensePlateUpload() {
                   </div>
                   <Button
                     onClick={handleUpload}
-                    disabled={loading || !selectedFile}
                     className="w-full"
-                    size="lg"
+                    disabled={loading}
                   >
                     {loading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Đang xử lý...
+                        {loadingMessage}
                       </>
                     ) : (
                       "Nhận dạng biển số"
                     )}
                   </Button>
                 </div>
+
+                {loading && (
+                  <div className="mt-2">
+                    <Progress value={loadingProgress} className="h-2" />
+                  </div>
+                )}
 
                 {result?.processed_image_url ? (
                   <div className="space-y-4">
@@ -360,14 +424,13 @@ export function LicensePlateUpload() {
                   )}
                   <Button
                     onClick={handleUpload}
-                    disabled={loading || !imageUrl}
                     className="w-full"
-                    size="lg"
+                    disabled={loading}
                   >
                     {loading ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Đang xử lý...
+                        {loadingMessage}
                       </>
                     ) : (
                       "Nhận dạng biển số"

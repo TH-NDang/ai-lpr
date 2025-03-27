@@ -14,12 +14,16 @@ interface SuggestedActionsProps {
 }
 
 function PureSuggestedActions({ chatId, append }: SuggestedActionsProps) {
-  const suggestedActions = [
-    {
-      title: 'What are the advantages',
-      label: 'of using Next.js?',
-      action: 'What are the advantages of using Next.js?',
-    },
+  const suggestedActions: {
+    title: string;
+    label: string;
+    action: string;
+  }[] = [
+    // {
+    //   title: 'What are the advantages',
+    //   label: 'of using Next.js?',
+    //   action: 'What are the advantages of using Next.js?',
+    // },
     //!TODO: Handle more suggested actions, such as:
     // Some changed in log
     // 
