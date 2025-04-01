@@ -17,7 +17,8 @@ export const authConfig = {
       const isOnLogin = nextUrl.pathname.startsWith('/login')
 
       const isOnLicensePlate = nextUrl.pathname.startsWith('/license-plate')
-      const testRoute = isOnLicensePlate
+      const isOnOverview = nextUrl.pathname.startsWith('/overview')
+      const testRoute = isOnLicensePlate || isOnOverview
 
       if (isLoggedIn && (isOnLogin || isOnRegister || testRoute)) {
         return Response.redirect(new URL('/', nextUrl as unknown as URL))
