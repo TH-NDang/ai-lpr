@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
-import { licensePlates } from "@/lib/db/schema";
-import { ApiResponse, Detection } from "@/store/license-plate-store";
+import { licensePlates } from "@/lib/db/schema/schema";
+import type { ApiResponse, Detection } from "@/store/license-plate-store";
 
 export async function saveLicensePlateToDatabase(
   detection: Detection,
@@ -200,7 +200,7 @@ export async function saveLicensePlateViaApi(
       ? Math.round((detection as any).confidence_percent)
       : Math.round(detection.confidence_detection * 100);
 
-  // Create the request body
+  // Create the request body with all extended fields
   const requestBody = {
     plateNumber: detection.plate_number,
     confidence,
@@ -208,16 +208,34 @@ export async function saveLicensePlateViaApi(
     imageUrl: processedImageUrl || "",
     processedImageUrl,
 
-    // Optional fields from plate analysis
+    // Thông tin phân tích biển số
     provinceCode: plateAnalysis?.province_code || null,
     provinceName: plateAnalysis?.province_name || null,
     vehicleType: plateAnalysis?.plate_type_info?.name || null,
     plateType: plateAnalysis?.plate_type || null,
     plateFormat: plateAnalysis?.is_valid_format ? "valid" : "invalid",
 
-    // Additional plate details
+    // Thông tin chi tiết biển số
     plateSerial: plateAnalysis?.serial || null,
     registrationNumber: plateAnalysis?.number || null,
+
+    // Thông tin phân tích mở rộng
+    boundingBox: detection.bounding_box || null,
+    normalizedPlate: plateAnalysis?.normalized || null,
+    originalPlate: plateAnalysis?.original || null,
+    detectedColor: plateAnalysis?.detected_color || null,
+    ocrEngine: detection.ocr_engine_used || null,
+    isValidFormat: plateAnalysis?.is_valid_format || false,
+    formatDescription: plateAnalysis?.format_description || null,
+
+    // Thông tin phân loại xe
+    plateTypeInfo: plateAnalysis?.plate_type_info || null,
+
+    // Các trường khác
+    hasViolation: false, // Default, sẽ cập nhật sau
+    violationTypes: [], // Default, sẽ cập nhật sau
+    violationDescription: null, // Default, sẽ cập nhật sau
+    isVerified: false, // Default, chưa xác thực
   };
 
   try {
@@ -244,11 +262,11 @@ export async function saveLicensePlateViaApi(
       if (!response.ok) {
         // Kiểm tra nếu phản hồi là HTML thay vì JSON
         const contentType = response.headers.get("content-type");
-        if (contentType && contentType.includes("text/html")) {
+        if (contentType?.includes("text/html")) {
           const htmlError = await response.text();
           console.error(
             "Server returned HTML instead of JSON:",
-            htmlError.substring(0, 200) + "..."
+            `${htmlError.substring(0, 200)}...`
           );
           throw new Error(
             `Server error: ${response.status} ${response.statusText}`

@@ -1,0 +1,5 @@
+<svg width="300" height="150" viewBox="0 0 300 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="300" height="150" rx="10" fill="#E2E8F0"/>
+  <rect x="10" y="10" width="280" height="130" rx="5" fill="#F8FAFC" stroke="#94A3B8" stroke-width="2"/>
+  <text x="150" y="85" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#475569" text-anchor="middle">License Plate</text>
+</svg> 

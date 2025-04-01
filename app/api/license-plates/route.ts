@@ -1,14 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { licensePlates } from "@/lib/db/schema";
+import { licensePlates } from "@/lib/db/schema/schema";
 import { eq } from "drizzle-orm";
 
 // GET /api/license-plates - Get all license plates
 export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
-    const limit = parseInt(url.searchParams.get("limit") || "10");
-    const offset = parseInt(url.searchParams.get("offset") || "0");
+    const limit = Number.parseInt(url.searchParams.get("limit") || "10");
+    const offset = Number.parseInt(url.searchParams.get("offset") || "0");
 
     const plates = await db.query.licensePlates.findMany({
       limit,
@@ -80,9 +80,9 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    const plateId = parseInt(id);
+    const plateId = Number.parseInt(id);
 
-    if (isNaN(plateId)) {
+    if (Number.isNaN(plateId)) {
       return NextResponse.json(
         { error: "Invalid license plate ID" },
         { status: 400 }

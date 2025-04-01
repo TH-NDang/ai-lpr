@@ -1,12 +1,12 @@
-import type { Metadata } from "next";
-import { LicensePlateUpload } from "@/components/license-plate-upload";
-import { SidebarTrigger } from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
+import type { Metadata } from 'next'
+import { LicensePlateUpload } from '@/components/license-plate-upload'
+import { SidebarTrigger } from '@/components/ui/sidebar'
+import { Separator } from '@/components/ui/separator'
 
 export const metadata: Metadata = {
-  title: "Nhận dạng biển số xe | AI-LPR",
-  description: "Hệ thống nhận dạng biển số xe thông minh sử dụng AI",
-};
+  title: 'Nhận dạng biển số xe | AI-LPR',
+  description: 'Hệ thống nhận dạng biển số xe thông minh sử dụng AI',
+}
 
 export default function LicensePlatePage() {
   return (
@@ -30,5 +30,5 @@ export default function LicensePlatePage() {
         </div>
       </div>
     </div>
-  );
+  )
 }

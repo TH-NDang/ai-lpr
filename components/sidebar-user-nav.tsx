@@ -1,9 +1,8 @@
-'use client'
-import { ChevronUp } from 'lucide-react'
-import Image from 'next/image'
-import type { User } from 'next-auth'
-import { signOut } from 'next-auth/react'
-import { useTheme } from 'next-themes'
+"use client";
+import { ChevronUp } from "lucide-react";
+import Image from "next/image";
+import { useTheme } from "next-themes";
+import { useEffect } from "react";
 
 import {
   DropdownMenu,
@@ -11,15 +10,24 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+} from "@/components/ui/dropdown-menu";
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from '@/components/ui/sidebar'
+} from "@/components/ui/sidebar";
+import { authClient, initializeOneTap } from "@/lib/auth/client";
 
-export function SidebarUserNav({ user }: { user: User }) {
-  const { setTheme, theme } = useTheme()
+export function SidebarUserNav() {
+  const { setTheme, theme } = useTheme();
+
+  const { data: session } = authClient.useSession();
+  const user = session?.user;
+
+  useEffect(() => {
+    // Initialize oneTap when component mounts
+    initializeOneTap().catch(console.error);
+  }, []);
 
   return (
     <SidebarMenu>
@@ -28,8 +36,8 @@ export function SidebarUserNav({ user }: { user: User }) {
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton className="data-[state=open]:bg-sidebar-accent bg-background data-[state=open]:text-sidebar-accent-foreground h-10">
               <Image
-                src={`https://avatar.vercel.sh/${user.email}`}
-                alt={user.email ?? 'User Avatar'}
+                src={`https://avatar.vercel.sh/${user?.email}`}
+                alt={user?.email ?? "User Avatar"}
                 width={24}
                 height={24}
                 className="rounded-full"
@@ -44,19 +52,17 @@ export function SidebarUserNav({ user }: { user: User }) {
           >
             <DropdownMenuItem
               className="cursor-pointer"
-              onSelect={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              onSelect={() => setTheme(theme === "dark" ? "light" : "dark")}
             >
-              {`Toggle ${theme === 'light' ? 'dark' : 'light'} mode`}
+              {`Toggle ${theme === "light" ? "dark" : "light"} mode`}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <button
                 type="button"
                 className="w-full cursor-pointer"
-                onClick={() => {
-                  signOut({
-                    redirectTo: '/',
-                  })
+                onClick={async () => {
+                  await authClient.signOut();
                 }}
               >
                 Sign out
@@ -66,5 +72,5 @@ export function SidebarUserNav({ user }: { user: User }) {
         </DropdownMenu>
       </SidebarMenuItem>
     </SidebarMenu>
-  )
+  );
 }

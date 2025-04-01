@@ -1,11 +1,11 @@
-import { drizzle } from 'drizzle-orm/postgres-js'
-import postgres from 'postgres'
-import * as schema from './schema'
+import { drizzle } from "drizzle-orm/postgres-js";
+import postgres from "postgres";
+import * as schema from "./schema/schema";
 
-const connectionString = process.env.POSTGRES_URL!
+const connectionString = process.env.POSTGRES_URL!;
 
 // Create the connection
-const client = postgres(connectionString)
+const client = postgres(connectionString);
 
 // Create the database instance
-export const db = drizzle(client, { schema })
+export const db = drizzle(client, { schema });

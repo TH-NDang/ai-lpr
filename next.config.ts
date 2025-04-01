@@ -1,4 +1,4 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
   experimental: {
@@ -6,19 +6,19 @@ const nextConfig: NextConfig = {
     // Configure Turbo to handle Node.js modules
     turbo: {
       resolveAlias: {
-        fs: "false",
-        net: "false",
-        tls: "false",
-        crypto: "false",
-        perf_hooks: "false",
-        "pg-native": "false",
+        fs: 'false',
+        net: 'false',
+        tls: 'false',
+        crypto: 'false',
+        perf_hooks: 'false',
+        'pg-native': 'false',
       },
     },
   },
   images: {
     remotePatterns: [
       {
-        hostname: "avatar.vercel.sh",
+        hostname: 'avatar.vercel.sh',
       },
     ],
   },
@@ -31,11 +31,11 @@ const nextConfig: NextConfig = {
       tls: false,
       perf_hooks: false,
       crypto: false,
-      "pg-native": false,
-    };
+      'pg-native': false,
+    }
 
-    return config;
+    return config
   },
-};
+}
 
-export default nextConfig;
+export default nextConfig
