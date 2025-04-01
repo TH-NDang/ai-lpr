@@ -31,14 +31,9 @@ export interface ApiResponse {
   error: string | null;
 }
 
-export interface ProcessedDetection {
-  plate_number: string;
-  confidence_detection: number;
-  plate_analysis: PlateAnalysis | null;
-  ocr_engine_used: string | null;
-  detections: Detection[];
+export interface ProcessedDetection extends Detection {
+  confidence_percent: number;
   processed_image_url: string | null;
-  error: string | null;
 }
 
 interface LicensePlateState {
@@ -115,7 +110,6 @@ export const useLicensePlateStore = create<LicensePlateState>()((set, get) => ({
       loadingMessage: "Đang xử lý...",
     }),
 
-  // Computed
   getCurrentDetection: () => {
     const { result, selectedDetection } = get();
 
@@ -134,15 +128,10 @@ export const useLicensePlateStore = create<LicensePlateState>()((set, get) => ({
       detection = result.detections[index] || result.detections[0];
     }
 
-    // Trả về đối tượng với các thuộc tính cần thiết
     return {
-      plate_number: detection.plate_number,
-      confidence_detection: detection.confidence_detection * 100,
-      plate_analysis: detection.plate_analysis,
-      ocr_engine_used: detection.ocr_engine_used,
-      detections: result.detections,
+      ...detection,
+      confidence_percent: detection.confidence_detection * 100,
       processed_image_url: result.processed_image_url,
-      error: result.error,
     };
   },
 }));

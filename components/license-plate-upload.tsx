@@ -357,11 +357,11 @@ const DetectionDetails = ({
           <div className="flex items-center space-x-2">
             <span className="text-sm text-muted-foreground">Độ tin cậy:</span>
             <Progress
-              value={detection.confidence_detection}
+              value={detection.confidence_percent}
               className="h-2 flex-1"
             />
             <span className="text-sm font-medium">
-              {(detection.confidence_detection).toFixed(1)}%
+              {detection.confidence_percent.toFixed(1)}%
             </span>
           </div>
         </div>
@@ -606,12 +606,28 @@ export function LicensePlateUpload() {
 
       if (!detection) return;
 
-      await saveLicensePlateViaApi(detection, result.processed_image_url);
+      const saveResult = await saveLicensePlateViaApi(
+        detection,
+        result.processed_image_url
+      );
+
+      if (saveResult.success === false) {
+        throw new Error(
+          saveResult.error || "Lỗi không xác định khi lưu biển số"
+        );
+      }
 
       toast.success("Biển số đã được lưu vào cơ sở dữ liệu");
     } catch (error) {
       console.error("Error saving to database:", error);
-      toast.error("Không thể lưu biển số vào cơ sở dữ liệu");
+
+      // Hiển thị thông báo lỗi cụ thể nếu có
+      let errorMsg = "Không thể lưu biển số vào cơ sở dữ liệu";
+      if (error instanceof Error) {
+        errorMsg += `: ${error.message}`;
+      }
+
+      toast.error(errorMsg);
     }
   };
 

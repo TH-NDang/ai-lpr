@@ -194,8 +194,11 @@ export async function saveLicensePlateViaApi(
 ) {
   const plateAnalysis = detection.plate_analysis;
 
-  // Convert confidence from 0-1 to 0-100
-  const confidence = Math.round(detection.confidence_detection * 100);
+  // Convert confidence from 0-1 to 0-100 if not already converted
+  const confidence =
+    "confidence_percent" in detection
+      ? Math.round((detection as any).confidence_percent)
+      : Math.round(detection.confidence_detection * 100);
 
   // Create the request body
   const requestBody = {
@@ -217,18 +220,58 @@ export async function saveLicensePlateViaApi(
     registrationNumber: plateAnalysis?.number || null,
   };
 
-  // Send to our API endpoint
-  const response = await fetch("/api/license-plates", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(requestBody),
-  });
+  try {
+    // Thử sử dụng server action trước
+    try {
+      // Dynamically import server action
+      const { saveLicensePlate } = await import("@/lib/actions");
+      return await saveLicensePlate(requestBody);
+    } catch (serverActionError) {
+      console.warn(
+        "Server action failed, falling back to API route:",
+        serverActionError
+      );
 
-  if (!response.ok) {
-    throw new Error(`Failed to save license plate: ${response.statusText}`);
+      // Fallback to API route if server action fails
+      const response = await fetch("/api/license-plates", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        // Kiểm tra nếu phản hồi là HTML thay vì JSON
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("text/html")) {
+          const htmlError = await response.text();
+          console.error(
+            "Server returned HTML instead of JSON:",
+            htmlError.substring(0, 200) + "..."
+          );
+          throw new Error(
+            `Server error: ${response.status} ${response.statusText}`
+          );
+        }
+
+        const errorData = await response
+          .json()
+          .catch(() => ({ error: response.statusText }));
+        throw new Error(
+          `Failed to save license plate: ${
+            errorData.error || response.statusText
+          }`
+        );
+      }
+
+      // Parse JSON response
+      const data = await response.json();
+      return data;
+    }
+  } catch (error) {
+    console.error("API request failed:", error);
+    // Re-throw the error so it can be caught by the caller
+    throw error;
   }
-
-  return await response.json();
 }
