@@ -118,14 +118,12 @@ export const licensePlates = pgTable('license_plates', {
   imageUrl: text('image_url').notNull(),
   processedImageUrl: text('processed_image_url'),
 
-  // Thêm các trường mới cho phân tích biển số
   provinceCode: text('province_code'),
   provinceName: text('province_name'),
   vehicleType: text('vehicle_type'),
   plateType: text('plate_type'),
-  plateFormat: text('plate_format'), // Không hiển thị trong UI nhưng giữ lại trong DB
+  plateFormat: text('plate_format'),
 
-  // Giữ lại nhưng không hiển thị trong UI
   plateSerial: text('plate_serial'),
   registrationNumber: text('registration_number'),
 

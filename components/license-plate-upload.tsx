@@ -1,7 +1,13 @@
 "use client";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
@@ -258,8 +264,11 @@ export function LicensePlateUpload() {
       <Card className="overflow-hidden border-2 border-muted/30">
         <CardHeader className="bg-muted/20">
           <CardTitle className="text-xl">Nhận dạng biển số xe</CardTitle>
+          <CardDescription>
+            Tải lên hình ảnh để nhận dạng và phân tích biển số xe
+          </CardDescription>
         </CardHeader>
-        <CardContent className="p-6">
+        <CardContent>
           <Tabs
             defaultValue="file"
             value={inputMethod}
