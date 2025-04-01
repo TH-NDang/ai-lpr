@@ -2,6 +2,54 @@ CREATE TYPE "public"."detection_source" AS ENUM('upload', 'camera', 'import', 'a
 CREATE TYPE "public"."entry_type" AS ENUM('entry', 'exit', 'unknown');--> statement-breakpoint
 CREATE TYPE "public"."plate_type" AS ENUM('civilian', 'military', 'police', 'diplomatic', 'temporary', 'special');--> statement-breakpoint
 CREATE TYPE "public"."vehicle_category" AS ENUM('car', 'truck', 'motorcycle', 'bus', 'special', 'other');--> statement-breakpoint
+CREATE TABLE "account" (
+	"id" text PRIMARY KEY NOT NULL,
+	"account_id" text NOT NULL,
+	"provider_id" text NOT NULL,
+	"user_id" text NOT NULL,
+	"access_token" text,
+	"refresh_token" text,
+	"id_token" text,
+	"access_token_expires_at" timestamp,
+	"refresh_token_expires_at" timestamp,
+	"scope" text,
+	"password" text,
+	"created_at" timestamp NOT NULL,
+	"updated_at" timestamp NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "session" (
+	"id" text PRIMARY KEY NOT NULL,
+	"expires_at" timestamp NOT NULL,
+	"token" text NOT NULL,
+	"created_at" timestamp NOT NULL,
+	"updated_at" timestamp NOT NULL,
+	"ip_address" text,
+	"user_agent" text,
+	"user_id" text NOT NULL,
+	CONSTRAINT "session_token_unique" UNIQUE("token")
+);
+--> statement-breakpoint
+CREATE TABLE "user" (
+	"id" text PRIMARY KEY NOT NULL,
+	"name" text NOT NULL,
+	"email" text NOT NULL,
+	"email_verified" boolean NOT NULL,
+	"image" text,
+	"created_at" timestamp NOT NULL,
+	"updated_at" timestamp NOT NULL,
+	CONSTRAINT "user_email_unique" UNIQUE("email")
+);
+--> statement-breakpoint
+CREATE TABLE "verification" (
+	"id" text PRIMARY KEY NOT NULL,
+	"identifier" text NOT NULL,
+	"value" text NOT NULL,
+	"expires_at" timestamp NOT NULL,
+	"created_at" timestamp,
+	"updated_at" timestamp
+);
+--> statement-breakpoint
 CREATE TABLE "cameras" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" text NOT NULL,
@@ -32,6 +80,41 @@ CREATE TABLE "detections" (
 	"original_plate" text,
 	"camera_id" integer,
 	"location_id" integer,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "license_plates" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"plate_number" text NOT NULL,
+	"confidence" integer NOT NULL,
+	"confidence_ocr" integer,
+	"image_url" text NOT NULL,
+	"processed_image_url" text,
+	"province_code" text,
+	"province_name" text,
+	"vehicle_type" text,
+	"plate_type" text,
+	"plate_format" text,
+	"plate_serial" text,
+	"registration_number" text,
+	"bounding_box" json,
+	"normalized_plate" text,
+	"original_plate" text,
+	"detected_color" text,
+	"ocr_engine" text,
+	"is_valid_format" boolean,
+	"format_description" text,
+	"vehicle_category" text,
+	"plate_type_info" json,
+	"has_violation" boolean DEFAULT false,
+	"violation_types" text[],
+	"violation_description" text,
+	"is_verified" boolean DEFAULT false,
+	"verified_by" text,
+	"verified_at" timestamp,
+	"detection_id" integer,
+	"vehicle_id" integer,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
@@ -97,23 +180,8 @@ CREATE TABLE "violations" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-ALTER TABLE "license_plates" ADD COLUMN "bounding_box" json;--> statement-breakpoint
-ALTER TABLE "license_plates" ADD COLUMN "normalized_plate" text;--> statement-breakpoint
-ALTER TABLE "license_plates" ADD COLUMN "original_plate" text;--> statement-breakpoint
-ALTER TABLE "license_plates" ADD COLUMN "detected_color" text;--> statement-breakpoint
-ALTER TABLE "license_plates" ADD COLUMN "ocr_engine" text;--> statement-breakpoint
-ALTER TABLE "license_plates" ADD COLUMN "is_valid_format" boolean;--> statement-breakpoint
-ALTER TABLE "license_plates" ADD COLUMN "format_description" text;--> statement-breakpoint
-ALTER TABLE "license_plates" ADD COLUMN "vehicle_category" text;--> statement-breakpoint
-ALTER TABLE "license_plates" ADD COLUMN "plate_type_info" json;--> statement-breakpoint
-ALTER TABLE "license_plates" ADD COLUMN "has_violation" boolean DEFAULT false;--> statement-breakpoint
-ALTER TABLE "license_plates" ADD COLUMN "violation_types" text[];--> statement-breakpoint
-ALTER TABLE "license_plates" ADD COLUMN "violation_description" text;--> statement-breakpoint
-ALTER TABLE "license_plates" ADD COLUMN "is_verified" boolean DEFAULT false;--> statement-breakpoint
-ALTER TABLE "license_plates" ADD COLUMN "verified_by" text;--> statement-breakpoint
-ALTER TABLE "license_plates" ADD COLUMN "verified_at" timestamp;--> statement-breakpoint
-ALTER TABLE "license_plates" ADD COLUMN "detection_id" integer;--> statement-breakpoint
-ALTER TABLE "license_plates" ADD COLUMN "vehicle_id" integer;--> statement-breakpoint
+ALTER TABLE "account" ADD CONSTRAINT "account_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "session" ADD CONSTRAINT "session_user_id_user_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."user"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "parking_entries" ADD CONSTRAINT "parking_entries_detection_id_detections_id_fk" FOREIGN KEY ("detection_id") REFERENCES "public"."detections"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "parking_entries" ADD CONSTRAINT "parking_entries_location_id_locations_id_fk" FOREIGN KEY ("location_id") REFERENCES "public"."locations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "violations" ADD CONSTRAINT "violations_detection_id_detections_id_fk" FOREIGN KEY ("detection_id") REFERENCES "public"."detections"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
