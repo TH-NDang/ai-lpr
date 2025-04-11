@@ -1,7 +1,6 @@
 "use server";
 
-import { db } from "@/lib/db";
-import { licensePlates } from "@/lib/db/schema/schema";
+import { prisma } from "@/lib/db/prisma";
 import { revalidatePath } from "next/cache";
 
 // Mở rộng interface để hỗ trợ các trường mới
@@ -52,9 +51,8 @@ export async function saveLicensePlate(formData: LicensePlateFormData) {
       throw new Error("Missing required fields");
     }
 
-    const result = await db
-      .insert(licensePlates)
-      .values({
+    const result = await prisma.licensePlate.create({
+      data: {
         plateNumber: formData.plateNumber,
         confidence: formData.confidence,
         confidence_ocr: formData.confidence_ocr,
@@ -94,13 +92,13 @@ export async function saveLicensePlate(formData: LicensePlateFormData) {
         violationDescription: formData.violationDescription || null,
         isVerified: formData.isVerified || false,
         verifiedBy: formData.verifiedBy || null,
-      })
-      .returning();
+      },
+    });
 
     // Revalidate related paths
     revalidatePath("/license-plate");
 
-    return { success: true, plate: result[0] };
+    return { success: true, plate: result };
   } catch (error) {
     console.error("Error saving license plate:", error);
     return {

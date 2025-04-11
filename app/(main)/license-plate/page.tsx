@@ -3,11 +3,6 @@ import { LicensePlateUpload } from '@/components/license-plate-upload'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Separator } from '@/components/ui/separator'
 
-export const metadata: Metadata = {
-  title: 'Nhận dạng biển số xe | AI-LPR',
-  description: 'Hệ thống nhận dạng biển số xe thông minh sử dụng AI',
-}
-
 export default function LicensePlatePage() {
   return (
     <div className="container mx-auto py-8">

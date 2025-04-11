@@ -1,7 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { licensePlates } from "@/lib/db/schema/schema";
-import { eq } from "drizzle-orm";
+import { prisma } from "@/lib/db/prisma";
 
 // GET /api/license-plates - Get all license plates
 export async function GET(req: NextRequest) {
@@ -10,10 +8,12 @@ export async function GET(req: NextRequest) {
     const limit = Number.parseInt(url.searchParams.get("limit") || "10");
     const offset = Number.parseInt(url.searchParams.get("offset") || "0");
 
-    const plates = await db.query.licensePlates.findMany({
-      limit,
-      offset,
-      orderBy: (licensePlates, { desc }) => [desc(licensePlates.createdAt)],
+    const plates = await prisma.licensePlate.findMany({
+      take: limit,
+      skip: offset,
+      orderBy: {
+        createdAt: "desc",
+      },
     });
 
     return NextResponse.json({ plates });
@@ -39,9 +39,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const result = await db
-      .insert(licensePlates)
-      .values({
+    const result = await prisma.licensePlate.create({
+      data: {
         plateNumber: body.plateNumber,
         confidence: body.confidence,
         confidence_ocr: body.confidence_ocr,
@@ -54,10 +53,28 @@ export async function POST(req: NextRequest) {
         plateFormat: body.plateFormat,
         plateSerial: body.plateSerial,
         registrationNumber: body.registrationNumber,
-      })
-      .returning();
+        // Add other fields from the schema as needed, with defaults or null
+        boundingBox: body.boundingBox || undefined,
+        normalizedPlate: body.normalizedPlate || undefined,
+        originalPlate: body.originalPlate || undefined,
+        detectedColor: body.detectedColor || undefined,
+        ocrEngine: body.ocrEngine || undefined,
+        isValidFormat: body.isValidFormat || undefined,
+        formatDescription: body.formatDescription || undefined,
+        vehicleCategory: body.vehicleCategory || undefined,
+        plateTypeInfo: body.plateTypeInfo || undefined,
+        hasViolation: body.hasViolation || false,
+        violationTypes: body.violationTypes || [],
+        violationDescription: body.violationDescription || undefined,
+        isVerified: body.isVerified || false,
+        verifiedBy: body.verifiedBy || undefined,
+        verifiedAt: body.verifiedAt ? new Date(body.verifiedAt) : undefined,
+        detectionId: body.detectionId || undefined,
+        vehicleId: body.vehicleId || undefined,
+      },
+    });
 
-    return NextResponse.json({ plate: result[0] });
+    return NextResponse.json({ plate: result });
   } catch (error) {
     console.error("Error creating license plate:", error);
     return NextResponse.json(
@@ -89,7 +106,9 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    await db.delete(licensePlates).where(eq(licensePlates.id, plateId));
+    await prisma.licensePlate.delete({
+      where: { id: plateId },
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

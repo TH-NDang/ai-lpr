@@ -1,11 +1,11 @@
-import { db } from "@/lib/db";
-import { licensePlates } from "@/lib/db/schema/schema";
+import { prisma } from "@/lib/db/prisma";
 import type { ApiResponse, Detection } from "@/store/license-plate-store";
+import { LicensePlate } from "@prisma/client";
 
 export async function saveLicensePlateToDatabase(
   detection: Detection,
   processedImageUrl: string | null
-) {
+): Promise<LicensePlate> {
   try {
     const plateAnalysis = detection.plate_analysis;
 
@@ -16,9 +16,8 @@ export async function saveLicensePlateToDatabase(
     const confidenceOcr = detection.ocr_engine_used ? confidence : undefined;
 
     // Insert into database
-    const result = await db
-      .insert(licensePlates)
-      .values({
+    const result = await prisma.licensePlate.create({
+      data: {
         plateNumber: detection.plate_number,
         confidence,
         confidence_ocr: confidenceOcr,
@@ -36,11 +35,25 @@ export async function saveLicensePlateToDatabase(
         plateSerial: plateAnalysis?.serial || null,
         registrationNumber: plateAnalysis?.number || null,
 
-        // Timestamps handled by default values in the schema
-      })
-      .returning();
+        // Add other fields from the schema as needed, with defaults or null
+        boundingBox: detection.bounding_box || undefined,
+        normalizedPlate: plateAnalysis?.normalized || undefined,
+        originalPlate: plateAnalysis?.original || undefined,
+        detectedColor: plateAnalysis?.detected_color || undefined,
+        ocrEngine: detection.ocr_engine_used || undefined,
+        isValidFormat: plateAnalysis?.is_valid_format || false,
+        formatDescription: plateAnalysis?.format_description || undefined,
+        vehicleCategory: plateAnalysis?.plate_type_info?.name || null,
+        plateTypeInfo: plateAnalysis?.plate_type_info || undefined,
+        hasViolation: false,
+        violationTypes: [],
+        violationDescription: null,
+        isVerified: false,
+        // Timestamps are handled by @default(now()) and @updatedAt in schema
+      },
+    });
 
-    return result[0];
+    return result;
   } catch (error) {
     console.error("Error saving license plate to database:", error);
     throw error;

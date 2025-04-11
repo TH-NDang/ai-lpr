@@ -1,0 +1,303 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Defining the enums that were in Drizzle schema
+enum PlateType {
+  civilian
+  military
+  police
+  diplomatic
+  temporary
+  special
+}
+
+enum VehicleCategory {
+  car
+  truck
+  motorcycle
+  bus
+  special
+  other
+}
+
+enum DetectionSource {
+  upload
+  camera
+  import
+  api
+}
+
+enum EntryType {
+  entry
+  exit
+  unknown
+}
+
+// Main models
+model LicensePlate {
+  id               Int       @id @default(autoincrement())
+  plateNumber      String    @default("")
+  confidence       Int       @default(0)
+  confidence_ocr   Int?
+  imageUrl         String    @default("")
+  processedImageUrl String?
+
+  // Thông tin phân vùng
+  provinceCode     String?
+  provinceName     String?
+
+  // Thông tin phân loại
+  vehicleType      String?
+  plateType        String?
+  plateFormat      String?
+
+  // Thông tin chi tiết
+  plateSerial      String?
+  registrationNumber String?
+
+  // Thêm các trường mới từ kết quả phân tích
+  boundingBox      Json?      // [x, y, width, height]
+  normalizedPlate  String?    // Biển số chuẩn hóa (không dấu, không khoảng cách)
+  originalPlate    String?    // Biển số gốc như được phát hiện
+  detectedColor    String?    // Màu biển số được phát hiện
+  ocrEngine        String?    // Engine OCR được sử dụng
+  isValidFormat    Boolean?   // Cờ đánh dấu định dạng hợp lệ
+  formatDescription String?   // Mô tả định dạng biển số
+
+  // Thông tin phân loại xe
+  vehicleCategory  String?    // Loại xe (xe con, xe tải, xe khách, xe đầu kéo, etc.)
+  plateTypeInfo    Json?      // Thông tin loại biển số
+
+  // Thông tin xử phạt
+  hasViolation     Boolean    @default(false) // Có vi phạm hay không
+  violationTypes   String[]   @default([]) // Các loại vi phạm
+  violationDescription String? // Mô tả vi phạm
+
+  // Thông tin xác thực
+  isVerified       Boolean    @default(false) // Đã xác thực hay chưa
+  verifiedBy       String?    // Người xác thực
+  verifiedAt       DateTime?  // Thời gian xác thực
+
+  detectionId      Int?
+  vehicleId        Int?
+
+  // Relationships
+  detection        Detection? @relation(fields: [detectionId], references: [id])
+  vehicle          Vehicle?   @relation(fields: [vehicleId], references: [id])
+
+  // Timestamp
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @default(now()) @updatedAt
+
+  @@map("license_plates")
+}
+
+model Vehicle {
+  id                Int       @id @default(autoincrement())
+  // Thông tin đăng ký
+  registrationNumber String    @unique @default("")
+  ownerName         String?
+  registrationDate  DateTime?
+  expiryDate        DateTime?
+
+  // Thông tin xe
+  make              String?
+  model             String?
+  year              Int?
+  color             String?
+  vehicleCategory   VehicleCategory?
+
+  // Relationships
+  licensePlates     LicensePlate[]
+  parkingEntries    ParkingEntry[]
+
+  // Timestamp
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @default(now()) @updatedAt
+
+  @@map("vehicles")
+}
+
+model Detection {
+  id                Int       @id @default(autoincrement())
+  source            DetectionSource @default(upload)
+  imageUrl          String    @default("")
+  processedImageUrl String?
+  detectionTime     DateTime  @default(now())
+
+  // Thông số phát hiện
+  confidence        Int       @default(0)
+  confidenceOcr     Int?
+  boundingBox       Json?
+  ocrEngine         String?
+  processTimeMs     Int?
+
+  // Phần thông tin kết quả phân tích
+  plateNumber       String    @default("")
+  normalizedPlate   String?
+  originalPlate     String?
+
+  // References
+  cameraId          Int?
+  locationId        Int?
+
+  // Relationships
+  licensePlates     LicensePlate[]
+  camera            Camera?   @relation(fields: [cameraId], references: [id])
+  location          Location? @relation(fields: [locationId], references: [id])
+  parkingEntries    ParkingEntry[]
+
+  // Timestamp
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @default(now()) @updatedAt
+
+  @@map("detections")
+}
+
+model Camera {
+  id                Int       @id @default(autoincrement())
+  name              String    @default("")
+  ipAddress         String?
+  model             String?
+  resolution        String?
+  status            String?   @default("active")
+
+  // Vị trí
+  locationId        Int?
+  position          String?
+  direction         String?
+
+  // Relationships
+  detections        Detection[]
+  location          Location? @relation(fields: [locationId], references: [id])
+
+  // Timestamp
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @default(now()) @updatedAt
+
+  @@map("cameras")
+}
+
+model Location {
+  id                Int       @id @default(autoincrement())
+  name              String    @default("")
+  address           String?
+  locationType      String?  // parking, intersection, highway, etc
+
+  // Tọa độ
+  latitude          Float?
+  longitude         Float?
+
+  // Relationships
+  cameras           Camera[]
+  detections        Detection[]
+  parkingEntries    ParkingEntry[]
+
+  // Timestamp
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @default(now()) @updatedAt
+
+  @@map("locations")
+}
+
+model ParkingEntry {
+  id                Int       @id @default(autoincrement())
+  entryTime         DateTime  @default(now())
+  exitTime          DateTime?
+  entryType         EntryType @default(unknown)
+
+  // Thông tin xe và biển số
+  detectionId       Int       @default(0)
+  plateNumber       String    @default("") // duplicate để dễ tìm kiếm
+  vehicleId         Int?
+  locationId        Int       @default(0)
+
+  // Thông tin phí
+  parkingFee        Float?
+  paymentStatus     String?
+  paymentTime       DateTime?
+  paymentMethod     String?
+  receiptNumber     String?
+
+  // Relationships
+  detection         Detection @relation(fields: [detectionId], references: [id])
+  vehicle           Vehicle?  @relation(fields: [vehicleId], references: [id])
+  location          Location  @relation(fields: [locationId], references: [id])
+
+  // Timestamp
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @default(now()) @updatedAt
+
+  @@map("parking_entries")
+}
+
+// Auth-related models
+model User {
+  id             String    @id @default(cuid())
+  name           String?   // Changed to optional, removed default
+  email          String    @unique // Removed default
+  emailVerified  Boolean   @default(false)
+  image          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @default(now()) @updatedAt
+  sessions       Session[]
+  accounts       Account[]
+
+  @@map("user")
+}
+
+model Session {
+  id          String    @id @default(cuid())
+  expiresAt   DateTime  // Removed default
+  token       String    @unique @default(cuid())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+  ipAddress   String?
+  userAgent   String?
+  userId      String    // Removed default
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id @default(cuid())
+  accountId             String    // Removed default
+  providerId            String    // Removed default
+  userId                String    // Removed default
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @default(now()) @updatedAt
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("account")
+}
+
+model Verification {
+  id          String    @id @default(cuid())
+  identifier  String    // Removed default
+  value       String    // Removed default
+  expiresAt   DateTime  // Removed default
+  createdAt   DateTime? @default(now())
+  updatedAt   DateTime? @default(now())
+
+  @@map("verification")
+}
