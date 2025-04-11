@@ -1,40 +1,31 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-import type { auth } from './lib/auth';
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 import { getSessionCookie } from "better-auth/cookies";
-
-
-type Session = typeof auth.$Infer.Session;
 
 export async function middleware(request: NextRequest) {
   const cookies = getSessionCookie(request);
 
   const isLoggedIn = !!cookies;
   const isOnLogin = request.nextUrl.pathname.startsWith("/login");
-  const isOnLicensePlate = request.nextUrl.pathname.startsWith("/license-plate");
-  const isOnOverview = request.nextUrl.pathname.startsWith("/overview");
-  const isOnDashboard = request.nextUrl.pathname.startsWith("/dashboard");
-  const testRoutes = ["/license-plate", "/overview"];
-  const protectedRoutes = ["/dashboard", "/license-plate", "/overview"];
 
-  if (isOnLogin || testRoutes.includes(request.nextUrl.pathname)) {
-    return NextResponse.next();
-  }
+  const protectedRoutes = ["/dashboard", "/license-plate", "/history"];
 
-  if (isOnLogin && isLoggedIn) {
-    return NextResponse.redirect(new URL("/license-plate", request.url));
-  }
-
-  if (protectedRoutes.includes(request.nextUrl.pathname) && !isLoggedIn) {
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
-
-  if (isLoggedIn) {
+  // Redirect from auth pages to home if already logged in
+  if (isLoggedIn && isOnLogin) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
+  // For protected routes, check authentication
+  if (protectedRoutes.includes(request.nextUrl.pathname)) {
+    if (!isLoggedIn) {
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
+  }
+
+  // For all other routes, just continue
   return NextResponse.next();
 }
+
 export const config = {
-  matcher: ['/', '/:id', '/api/:path*', '/login'],
-}
+  matcher: ["/", "/:id", "/api/:path*", "/login"],
+};
