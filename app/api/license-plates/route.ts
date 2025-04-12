@@ -1,7 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
 
-// GET /api/license-plates - Get all license plates
 export async function GET(req: NextRequest) {
   try {
     const url = new URL(req.url);
@@ -26,7 +25,6 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST /api/license-plates - Create a new license plate
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -84,7 +82,6 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// DELETE /api/license-plates/:id - Delete a license plate
 export async function DELETE(req: NextRequest) {
   try {
     const url = new URL(req.url);

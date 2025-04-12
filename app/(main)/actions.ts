@@ -1,6 +1,9 @@
-import { prisma } from "@/lib/db/prisma";
-import type { ApiResponse, Detection } from "@/store/license-plate-store";
-import { LicensePlate } from "@prisma/client";
+"use server";
+
+import { prisma, transformDbRecordToColumnSchema } from "@/lib/db";
+import type { Detection, ApiResponse } from "@/store/license-plate-store";
+import { LicensePlate, Prisma } from "@prisma/client";
+import { revalidatePath } from "next/cache";
 
 export async function saveLicensePlateToDatabase(
   detection: Detection,
@@ -200,7 +203,6 @@ export async function processLicensePlateFromUrl(
   }
 }
 
-// This function is safe to call from the client side
 export async function saveLicensePlateViaApi(
   detection: Detection,
   processedImageUrl: string | null
@@ -245,17 +247,14 @@ export async function saveLicensePlateViaApi(
     plateTypeInfo: plateAnalysis?.plate_type_info || null,
 
     // Các trường khác
-    hasViolation: false, // Default, sẽ cập nhật sau
-    violationTypes: [], // Default, sẽ cập nhật sau
-    violationDescription: null, // Default, sẽ cập nhật sau
-    isVerified: false, // Default, chưa xác thực
+    hasViolation: false,
+    violationTypes: [],
+    violationDescription: null,
+    isVerified: false,
   };
 
   try {
-    // Thử sử dụng server action trước
     try {
-      // Dynamically import server action
-      const { saveLicensePlate } = await import("@/lib/actions");
       return await saveLicensePlate(requestBody);
     } catch (serverActionError) {
       console.warn(
@@ -304,5 +303,179 @@ export async function saveLicensePlateViaApi(
     console.error("API request failed:", error);
     // Re-throw the error so it can be caught by the caller
     throw error;
+  }
+}
+
+export interface LicensePlateFormData {
+  plateNumber: string;
+  confidence: number;
+  confidence_ocr?: number;
+  imageUrl: string;
+  processedImageUrl?: string | null;
+
+  // Thông tin phân vùng
+  provinceCode?: string | null;
+  provinceName?: string | null;
+
+  // Thông tin phân loại
+  vehicleType?: string | null;
+  plateType?: string | null;
+  plateFormat?: string | null;
+
+  // Thông tin chi tiết
+  plateSerial?: string | null;
+  registrationNumber?: string | null;
+
+  // Thông tin phân tích mở rộng
+  boundingBox?: any | null;
+  normalizedPlate?: string | null;
+  originalPlate?: string | null;
+  detectedColor?: string | null;
+  ocrEngine?: string | null;
+  isValidFormat?: boolean;
+  formatDescription?: string | null;
+
+  // Thông tin phân loại xe
+  plateTypeInfo?: any | null;
+
+  // Thông tin xử phạt và xác thực
+  hasViolation?: boolean;
+  violationTypes?: string[];
+  violationDescription?: string | null;
+  isVerified?: boolean;
+  verifiedBy?: string | null;
+}
+
+export async function saveLicensePlate(formData: LicensePlateFormData) {
+  try {
+    // Validate the required fields
+    if (!formData.plateNumber || !formData.confidence || !formData.imageUrl) {
+      throw new Error("Missing required fields");
+    }
+
+    const result = await prisma.licensePlate.create({
+      data: {
+        plateNumber: formData.plateNumber,
+        confidence: formData.confidence,
+        confidence_ocr: formData.confidence_ocr,
+        imageUrl: formData.imageUrl,
+        processedImageUrl: formData.processedImageUrl || null,
+
+        // Thông tin phân vùng
+        provinceCode: formData.provinceCode || null,
+        provinceName: formData.provinceName || null,
+
+        // Thông tin phân loại
+        vehicleType: formData.vehicleType || null,
+        plateType: formData.plateType || null,
+        plateFormat: formData.plateFormat || null,
+
+        // Thông tin chi tiết
+        plateSerial: formData.plateSerial || null,
+        registrationNumber: formData.registrationNumber || null,
+
+        // Thông tin phân tích mở rộng
+        boundingBox: formData.boundingBox || null,
+        normalizedPlate: formData.normalizedPlate || null,
+        originalPlate: formData.originalPlate || null,
+        detectedColor: formData.detectedColor || null,
+        ocrEngine: formData.ocrEngine || null,
+        isValidFormat: formData.isValidFormat || false,
+        formatDescription: formData.formatDescription || null,
+
+        // Thông tin phân loại xe
+        plateTypeInfo: formData.plateTypeInfo || null,
+        vehicleCategory:
+          formData.plateTypeInfo?.name || formData.vehicleType || null,
+
+        // Thông tin xử phạt và xác thực
+        hasViolation: formData.hasViolation || false,
+        violationTypes: formData.violationTypes || [],
+        violationDescription: formData.violationDescription || null,
+        isVerified: formData.isVerified || false,
+        verifiedBy: formData.verifiedBy || null,
+      },
+    });
+
+    // Revalidate related paths
+    revalidatePath("/license-plate");
+
+    return { success: true, plate: result };
+  } catch (error) {
+    console.error("Error saving license plate:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error occurred",
+    };
+  }
+}
+
+interface GetRowsParams {
+  filterModel: Record<string, any>;
+  sortModel: { colId: string; sort: "asc" | "desc" }[];
+}
+
+function parseSortModel(
+  sortModel: GetRowsParams["sortModel"]
+): Prisma.LicensePlateOrderByWithRelationInput[] {
+  if (!sortModel || sortModel.length === 0) return [{ createdAt: "desc" }];
+  try {
+    return sortModel.map((sort) => ({
+      [sort.colId]: sort.sort,
+    }));
+  } catch (e) {
+    console.error("Failed to parse sortModel:", e);
+    return [{ createdAt: "desc" }];
+  }
+}
+
+function parseFilterModel(
+  filterModel: GetRowsParams["filterModel"]
+): Prisma.LicensePlateWhereInput {
+  if (!filterModel) return {};
+  try {
+    const where: Prisma.LicensePlateWhereInput = {};
+    // Example: Handle a simple text filter for plateNumber from AG Grid
+    if (filterModel.plateNumber?.filterType === "text") {
+      where.plateNumber = {
+        contains: filterModel.plateNumber.filter,
+        mode: "insensitive",
+      };
+    }
+    // Add more filter conditions based on AG Grid filter model structure
+    // (e.g., date ranges, number ranges, set filters)
+    return where;
+  } catch (e) {
+    console.error("Failed to parse filterModel:", e);
+    return {};
+  }
+}
+
+export async function getLicensePlatesAction(params: GetRowsParams) {
+  try {
+    const { filterModel, sortModel } = params;
+
+    const where = parseFilterModel(filterModel);
+    const orderBy = parseSortModel(sortModel);
+
+    // Fetch all records matching the filter
+    const records = await prisma.licensePlate.findMany({
+      where,
+      orderBy,
+      // No skip or take for client-side model
+    });
+
+    return {
+      success: true,
+      rows: records.map(transformDbRecordToColumnSchema),
+      // No totalRowCount needed for client-side model in this basic setup
+    };
+  } catch (error) {
+    console.error("Server Action Error - Failed to get license plates:", error);
+    return {
+      success: false,
+      error: "Failed to fetch data",
+      rows: [],
+    };
   }
 }

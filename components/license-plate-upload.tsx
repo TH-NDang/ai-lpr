@@ -1,20 +1,20 @@
-'use client'
-import { useEffect } from 'react'
-import { Button } from '@/components/ui/button'
+"use client";
+import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Progress } from '@/components/ui/progress'
-import { toast } from 'sonner'
-import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Loader2,
   Upload,
@@ -23,56 +23,56 @@ import {
   Link as LinkIcon,
   Info,
   SaveIcon,
-} from 'lucide-react'
+} from "lucide-react";
 import {
   useLicensePlateStore,
   translateColor,
-} from '@/store/license-plate-store'
+} from "@/store/license-plate-store";
 import {
   processLicensePlateImage,
   processLicensePlateFromUrl,
   saveLicensePlateViaApi,
-} from '@/lib/services/license-plate-service'
+} from "@/app/(main)/actions";
 
 type FileUploadTabProps = {
-  previewUrl: string | null
-  loading: boolean
-  loadingMessage: string
-  loadingProgress: number
-  error: string | null
-  result: any | null
-  handleFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void
-  handleUpload: () => Promise<void>
-}
+  previewUrl: string | null;
+  loading: boolean;
+  loadingMessage: string;
+  loadingProgress: number;
+  error: string | null;
+  result: any | null;
+  handleFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  handleUpload: () => Promise<void>;
+};
 
 type UrlInputTabProps = {
-  imageUrl: string
-  loading: boolean
-  loadingMessage: string
-  loadingProgress: number
-  error: string | null
-  result: any | null
-  setImageUrl: (url: string) => void
-  setResult: (result: any | null) => void
-  setError: (error: string | null) => void
-  handleUpload: () => Promise<void>
-}
+  imageUrl: string;
+  loading: boolean;
+  loadingMessage: string;
+  loadingProgress: number;
+  error: string | null;
+  result: any | null;
+  setImageUrl: (url: string) => void;
+  setResult: (result: any | null) => void;
+  setError: (error: string | null) => void;
+  handleUpload: () => Promise<void>;
+};
 
 type ResultPreviewProps = {
-  processedImageUrl: string | null | undefined
-  error: string | null
-}
+  processedImageUrl: string | null | undefined;
+  error: string | null;
+};
 
 type DetectionListProps = {
-  detections: any[]
-  selectedDetection: string
-  setSelectedDetection: (detection: string) => void
-}
+  detections: any[];
+  selectedDetection: string;
+  setSelectedDetection: (detection: string) => void;
+};
 
 type DetectionDetailsProps = {
-  detection: any | null
-  processedImageUrl: string | null | undefined
-}
+  detection: any | null;
+  processedImageUrl: string | null | undefined;
+};
 
 const FileUploadTab = ({
   previewUrl,
@@ -102,11 +102,11 @@ const FileUploadTab = ({
         </div>
       </div>
       <div
-        onClick={() => document.getElementById('image')?.click()}
+        onClick={() => document.getElementById("image")?.click()}
         className={`relative border-2 border-dashed rounded-lg transition-colors cursor-pointer flex items-center justify-center min-h-[160px] ${
           previewUrl
-            ? 'border-primary/30 bg-primary/5'
-            : 'border-muted-foreground/30 hover:border-muted-foreground/50 bg-muted/20 hover:bg-muted/30'
+            ? "border-primary/30 bg-primary/5"
+            : "border-muted-foreground/30 hover:border-muted-foreground/50 bg-muted/20 hover:bg-muted/30"
         }`}
       >
         {previewUrl ? (
@@ -136,7 +136,7 @@ const FileUploadTab = ({
             {loadingMessage}
           </>
         ) : (
-          'Nhận dạng biển số'
+          "Nhận dạng biển số"
         )}
       </Button>
       {loading && (
@@ -151,7 +151,7 @@ const FileUploadTab = ({
       error={error}
     />
   </div>
-)
+);
 
 const UrlInputTab = ({
   imageUrl,
@@ -176,9 +176,9 @@ const UrlInputTab = ({
             placeholder="https://example.com/image.jpg"
             value={imageUrl}
             onChange={(e) => {
-              setImageUrl(e.target.value)
-              setResult(null)
-              setError(null)
+              setImageUrl(e.target.value);
+              setResult(null);
+              setError(null);
             }}
             className="pl-10"
           />
@@ -195,10 +195,10 @@ const UrlInputTab = ({
               alt="Preview from URL"
               className="mx-auto max-h-[240px] object-contain rounded"
               onError={(e) => {
-                e.currentTarget.style.display = 'none'
+                e.currentTarget.style.display = "none";
                 setError(
-                  'Không thể tải ảnh từ URL này. Vui lòng kiểm tra lại URL.',
-                )
+                  "Không thể tải ảnh từ URL này. Vui lòng kiểm tra lại URL."
+                );
               }}
             />
           </div>
@@ -211,7 +211,7 @@ const UrlInputTab = ({
             {loadingMessage}
           </>
         ) : (
-          'Nhận dạng biển số'
+          "Nhận dạng biển số"
         )}
       </Button>
       {loading && (
@@ -226,7 +226,7 @@ const UrlInputTab = ({
       error={error}
     />
   </div>
-)
+);
 
 const ResultPreview = ({ processedImageUrl, error }: ResultPreviewProps) => {
   if (processedImageUrl) {
@@ -243,7 +243,7 @@ const ResultPreview = ({ processedImageUrl, error }: ResultPreviewProps) => {
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   if (error) {
@@ -254,7 +254,7 @@ const ResultPreview = ({ processedImageUrl, error }: ResultPreviewProps) => {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       </div>
-    )
+    );
   }
 
   return (
@@ -265,14 +265,14 @@ const ResultPreview = ({ processedImageUrl, error }: ResultPreviewProps) => {
           alt="License plate placeholder"
           className="w-32 h-32 mx-auto mb-4 opacity-20"
           onError={(e) => {
-            e.currentTarget.style.display = 'none'
+            e.currentTarget.style.display = "none";
           }}
         />
         <p>Vui lòng tải lên ảnh biển số để nhận dạng</p>
       </div>
     </div>
-  )
-}
+  );
+};
 
 const DetectionList = ({
   detections,
@@ -286,21 +286,21 @@ const DetectionList = ({
         <div
           key={index}
           className={`p-3 rounded-md cursor-pointer transition-all ${
-            selectedDetection === (index === 0 ? 'main' : index.toString())
-              ? 'bg-primary text-primary-foreground'
-              : 'bg-muted/30 hover:bg-muted/50'
+            selectedDetection === (index === 0 ? "main" : index.toString())
+              ? "bg-primary text-primary-foreground"
+              : "bg-muted/30 hover:bg-muted/50"
           }`}
           onClick={() =>
-            setSelectedDetection(index === 0 ? 'main' : index.toString())
+            setSelectedDetection(index === 0 ? "main" : index.toString())
           }
         >
           <div className="flex justify-between items-center">
             <span className="font-medium">{detection.plate_number}</span>
             <Badge
               variant={
-                selectedDetection === (index === 0 ? 'main' : index.toString())
-                  ? 'outline'
-                  : 'secondary'
+                selectedDetection === (index === 0 ? "main" : index.toString())
+                  ? "outline"
+                  : "secondary"
               }
               className="ml-2"
             >
@@ -311,13 +311,13 @@ const DetectionList = ({
       ))}
     </div>
   </div>
-)
+);
 
 const DetectionDetails = ({
   detection,
   processedImageUrl,
 }: DetectionDetailsProps) => {
-  if (!detection) return null
+  if (!detection) return null;
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -374,7 +374,7 @@ const DetectionDetails = ({
                   Tỉnh/TP
                 </span>
                 <span className="font-medium">
-                  {detection.plate_analysis.province_name || 'N/A'}
+                  {detection.plate_analysis.province_name || "N/A"}
                 </span>
               </div>
               <div>
@@ -382,7 +382,7 @@ const DetectionDetails = ({
                   Mã tỉnh
                 </span>
                 <span className="font-medium">
-                  {detection.plate_analysis.province_code || 'N/A'}
+                  {detection.plate_analysis.province_code || "N/A"}
                 </span>
               </div>
             </div>
@@ -394,7 +394,7 @@ const DetectionDetails = ({
                 </span>
                 <span className="font-medium">
                   {detection.plate_analysis.plate_type_info?.name ||
-                    'Không xác định'}
+                    "Không xác định"}
                 </span>
               </div>
               <div>
@@ -419,10 +419,7 @@ const DetectionDetails = ({
                   <CheckCircle2 className="h-3 w-3" /> Hợp lệ
                 </Badge>
               ) : (
-                <Badge
-                  variant="destructive"
-                  className="flex items-center gap-1"
-                >
+                <Badge variant="destructive" className="flex items-center gap-1">
                   <AlertCircle className="h-3 w-3" /> Không hợp lệ
                 </Badge>
               )}
@@ -463,7 +460,7 @@ const DetectionDetails = ({
                 <div>
                   <span className="text-xs text-muted-foreground">Seri:</span>
                   <span className="ml-1">
-                    {detection.plate_analysis.serial || 'N/A'}
+                    {detection.plate_analysis.serial || "N/A"}
                   </span>
                 </div>
                 <div>
@@ -471,7 +468,7 @@ const DetectionDetails = ({
                     Số đăng ký:
                   </span>
                   <span className="ml-1">
-                    {detection.plate_analysis.number || 'N/A'}
+                    {detection.plate_analysis.number || "N/A"}
                   </span>
                 </div>
               </div>
@@ -480,8 +477,8 @@ const DetectionDetails = ({
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
 export function LicensePlateUpload() {
   const {
@@ -506,142 +503,142 @@ export function LicensePlateUpload() {
     setSelectedDetection,
     setImageUrl,
     setInputMethod,
-  } = useLicensePlateStore()
+  } = useLicensePlateStore();
 
-  const currentDetection = getCurrentDetection()
+  const currentDetection = getCurrentDetection();
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] || null
+    const file = event.target.files?.[0] || null;
     if (file) {
-      setSelectedFile(file)
-      setPreviewUrl(URL.createObjectURL(file))
-      setResult(null)
-      setError(null)
+      setSelectedFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+      setResult(null);
+      setError(null);
     }
-  }
+  };
 
   const handleUpload = async () => {
-    if (inputMethod === 'file' && !selectedFile) {
-      setError('Vui lòng chọn file ảnh trước khi nhận dạng')
-      return
+    if (inputMethod === "file" && !selectedFile) {
+      setError("Vui lòng chọn file ảnh trước khi nhận dạng");
+      return;
     }
 
-    if (inputMethod === 'url' && !imageUrl) {
-      setError('Vui lòng nhập URL ảnh trước khi nhận dạng')
-      return
+    if (inputMethod === "url" && !imageUrl) {
+      setError("Vui lòng nhập URL ảnh trước khi nhận dạng");
+      return;
     }
 
-    setLoading(true)
-    setLoadingMessage('Đang kết nối đến server...')
-    setLoadingProgress(10)
-    setError(null)
+    setLoading(true);
+    setLoadingMessage("Đang kết nối đến server...");
+    setLoadingProgress(10);
+    setError(null);
 
     try {
       // Simulate progress
       const progressInterval = setInterval(() => {
         setLoadingProgress((prev) => {
-          const newProgress = prev + 5
+          const newProgress = prev + 5;
           if (newProgress >= 90) {
-            clearInterval(progressInterval)
-            return 90
+            clearInterval(progressInterval);
+            return 90;
           }
-          return newProgress
-        })
+          return newProgress;
+        });
 
         if (loadingProgress > 30 && loadingProgress < 60) {
-          setLoadingMessage('Đang xử lý hình ảnh...')
+          setLoadingMessage("Đang xử lý hình ảnh...");
         } else if (loadingProgress >= 60) {
-          setLoadingMessage('Đang phân tích biển số...')
+          setLoadingMessage("Đang phân tích biển số...");
         }
-      }, 500)
+      }, 500);
 
       // Process image using the appropriate service function
       const data =
-        inputMethod === 'file'
+        inputMethod === "file"
           ? await processLicensePlateImage(selectedFile!)
-          : await processLicensePlateFromUrl(imageUrl)
+          : await processLicensePlateFromUrl(imageUrl);
 
-      clearInterval(progressInterval)
-      setLoadingProgress(100)
-      setLoadingMessage('Hoàn tất!')
-      setResult(data)
-      setSelectedDetection('main') // Reset to main detection on new result
+      clearInterval(progressInterval);
+      setLoadingProgress(100);
+      setLoadingMessage("Hoàn tất!");
+      setResult(data);
+      setSelectedDetection("main"); // Reset to main detection on new result
 
       if (data.error) {
-        toast.warning(data.error)
+        toast.warning(data.error);
       } else {
-        toast.success('Biển số xe đã được xử lý và lưu thành công')
+        toast.success("Biển số xe đã được xử lý và lưu thành công");
       }
     } catch (err) {
-      console.error('API Error:', err)
+      console.error("API Error:", err);
 
       if (err instanceof Error) {
-        if (err.name === 'AbortError') {
-          setError('Yêu cầu bị hủy do quá thời gian chờ. Vui lòng thử lại sau.')
+        if (err.name === "AbortError") {
+          setError("Yêu cầu bị hủy do quá thời gian chờ. Vui lòng thử lại sau.");
         } else if (
-          err.message.includes('Failed to fetch') ||
-          err.message.includes('Network Error')
+          err.message.includes("Failed to fetch") ||
+          err.message.includes("Network Error")
         ) {
           setError(
-            'Không thể kết nối đến server API. Vui lòng kiểm tra kết nối mạng hoặc xác nhận rằng server đang hoạt động.',
-          )
+            "Không thể kết nối đến server API. Vui lòng kiểm tra kết nối mạng hoặc xác nhận rằng server đang hoạt động."
+          );
         } else {
-          setError(`Lỗi: ${err.message}`)
+          setError(`Lỗi: ${err.message}`);
         }
       } else {
-        setError('Lỗi không xác định khi gửi yêu cầu đến server')
+        setError("Lỗi không xác định khi gửi yêu cầu đến server");
       }
 
-      toast.error('Không thể xử lý hình ảnh. Vui lòng thử lại sau.')
+      toast.error("Không thể xử lý hình ảnh. Vui lòng thử lại sau.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleSaveDetection = async () => {
-    if (!currentDetection || !result) return
+    if (!currentDetection || !result) return;
 
     try {
       const detection = result.detections.find((d, index) => {
-        const detectionKey = index === 0 ? 'main' : index.toString()
-        return detectionKey === selectedDetection
-      })
+        const detectionKey = index === 0 ? "main" : index.toString();
+        return detectionKey === selectedDetection;
+      });
 
-      if (!detection) return
+      if (!detection) return;
 
       const saveResult = await saveLicensePlateViaApi(
         detection,
-        result.processed_image_url,
-      )
+        result.processed_image_url
+      );
 
       if (saveResult.success === false) {
         throw new Error(
-          saveResult.error || 'Lỗi không xác định khi lưu biển số',
-        )
+          saveResult.error || "Lỗi không xác định khi lưu biển số"
+        );
       }
 
-      toast.success('Biển số đã được lưu vào cơ sở dữ liệu')
+      toast.success("Biển số đã được lưu vào cơ sở dữ liệu");
     } catch (error) {
-      console.error('Error saving to database:', error)
+      console.error("Error saving to database:", error);
 
       // Hiển thị thông báo lỗi cụ thể nếu có
-      let errorMsg = 'Không thể lưu biển số vào cơ sở dữ liệu'
+      let errorMsg = "Không thể lưu biển số vào cơ sở dữ liệu";
       if (error instanceof Error) {
-        errorMsg += `: ${error.message}`
+        errorMsg += `: ${error.message}`;
       }
 
-      toast.error(errorMsg)
+      toast.error(errorMsg);
     }
-  }
+  };
 
   // Clean up preview URL when component unmounts
   useEffect(() => {
     return () => {
       if (previewUrl) {
-        URL.revokeObjectURL(previewUrl)
+        URL.revokeObjectURL(previewUrl);
       }
-    }
-  }, [previewUrl])
+    };
+  }, [previewUrl]);
 
   return (
     <div className="space-y-8">
@@ -657,7 +654,7 @@ export function LicensePlateUpload() {
           <Tabs
             defaultValue="file"
             value={inputMethod}
-            onValueChange={(value) => setInputMethod(value as 'file' | 'url')}
+            onValueChange={(value) => setInputMethod(value as "file" | "url")}
             className="mb-6"
           >
             <TabsList className="grid grid-cols-2 mb-4">
@@ -735,8 +732,8 @@ export function LicensePlateUpload() {
               <div
                 className={
                   result.detections.length > 1
-                    ? 'md:col-span-2'
-                    : 'md:col-span-3'
+                    ? "md:col-span-2"
+                    : "md:col-span-3"
                 }
               >
                 <DetectionDetails
@@ -749,5 +746,5 @@ export function LicensePlateUpload() {
         </Card>
       )}
     </div>
-  )
+  );
 }

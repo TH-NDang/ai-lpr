@@ -16,7 +16,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { authClient, initializeOneTap } from "@/lib/auth/client";
+import { authClient, initializeOneTap } from "@/lib/auth-client";
 
 export function SidebarUserNav() {
   const { setTheme, theme } = useTheme();

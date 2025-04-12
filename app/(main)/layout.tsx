@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
-import { authClient } from "@/lib/auth/client";
+import { authClient } from "@/lib/auth-client";
 import Script from "next/script";
 
 export const experimental_ppr = true;

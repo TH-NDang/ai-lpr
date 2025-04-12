@@ -1,4 +1,4 @@
-import { LicensePlate } from "@/lib/generated/prisma";
+import { LicensePlate } from "@prisma/client";
 
 export function transformDbRecordToColumnSchema(record: LicensePlate) {
   // Determine level based on confidence value
