@@ -3,14 +3,17 @@
 import {
   insertDetectionAndResults,
   fetchDetectionHistory,
-  HistoryQueryResultItem,
+  getFilterOptions,
+  FetchHistoryResult,
 } from "@/lib/db/queries";
 
-import type {
-  BackendDetection as StoreDetection,
-  ApiResponse,
-} from "@/lib/store/license-plate-store";
+import type { ApiResponse } from "@/lib/store/license-plate-store";
 import { revalidatePath } from "next/cache";
+import type {
+  ColumnFiltersState,
+  SortingState,
+  PaginationState,
+} from "@tanstack/react-table";
 
 export async function processLicensePlateImage(
   file: File
@@ -204,51 +207,33 @@ export async function processLicensePlateFromUrl(
   }
 }
 
-interface HistoryGridRow {
-  id: number;
-  plateNumber: string;
-  normalizedPlate?: string | null;
-  confidence: number;
-  date: Date | null;
-  provinceName: string | null;
-  imageUrl: string | null;
-  isValidFormat?: boolean | null;
-  ocrEngine?: string | null;
-  detectionId?: number;
-}
-
-function transformQueryResultToGridSchema(
-  record: HistoryQueryResultItem
-): HistoryGridRow {
-  return {
-    id: record.id,
-    plateNumber: record.plateNumber ?? "N/A",
-    normalizedPlate: record.normalizedPlate,
-    confidence: Math.round(record.confidenceDetection * 100),
-    date: record.detection?.detectionTime ?? null,
-    provinceName: record.provinceName,
-    imageUrl: record.detection?.processedImageUrl ?? null,
-    isValidFormat: record.isValidFormat,
-    ocrEngine: record.ocrEngineUsed,
-    detectionId: record.detectionId,
-  };
-}
-
-export async function getHistoryAction() {
+export async function getHistoryAction(params: {
+  pagination: PaginationState;
+  sorting: SortingState;
+  filters: ColumnFiltersState;
+}): Promise<FetchHistoryResult> {
   try {
-    const records = await fetchDetectionHistory();
-    console.log("records", records);
+    const { pagination, sorting, filters } = params;
 
-    return {
-      success: true,
-      rows: records.map(transformQueryResultToGridSchema),
-    };
+    const result = await fetchDetectionHistory(pagination, sorting, filters);
+
+    return result;
   } catch (error) {
     console.error("Server Action Error - Failed to get history:", error);
+    throw error;
+  }
+}
+
+export async function getHistoryFilterOptions() {
+  try {
+    const options = await getFilterOptions();
+    return options;
+  } catch (error) {
+    console.error("Server Action Error - Failed to get filter options:", error);
     return {
-      success: false,
-      error: "Failed to fetch history data",
-      rows: [],
+      ocrEngines: [],
+      vehicleTypes: [],
+      sources: [],
     };
   }
 }

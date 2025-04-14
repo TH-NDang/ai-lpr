@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useId } from "react";
-import { parseAsString, useQueryState } from "nuqs";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -9,16 +8,11 @@ import {
   PaginationState,
   flexRender,
   getCoreRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
-  getPaginationRowModel,
-  getFacetedRowModel,
-  getFacetedUniqueValues,
-  getFacetedMinMaxValues,
   useReactTable,
   Column,
   Table as ReactTable,
   RowData,
+  VisibilityState,
 } from "@tanstack/react-table";
 import {
   Table,
@@ -46,6 +40,8 @@ import {
   SearchIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  Columns3Icon,
+  ZoomInIcon,
 } from "lucide-react";
 import {
   Pagination,
@@ -55,22 +51,33 @@ import {
 } from "@/components/ui/pagination";
 import { usePagination } from "@/hooks/use-pagination";
 import { cn } from "@/lib/utils";
-import { getHistoryAction } from "../actions";
+import { getHistoryAction, getHistoryFilterOptions } from "../actions";
 import { DateRangeFilter } from "@/components/date-range-filter";
 import { isWithinInterval, parseISO } from "date-fns";
 import { DateRange } from "react-day-picker";
+import { useQuery } from "@tanstack/react-query";
+import type { HistoryQueryResultItem } from "@/lib/db/queries";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
-interface HistoryGridRow {
-  id: number;
-  plateNumber: string;
-  normalizedPlate?: string | null;
-  confidence: number;
-  date: Date | null;
-  provinceName: string | null;
-  imageUrl: string | null;
-  isValidFormat?: boolean | null;
-  ocrEngine?: string | null;
-  detectionId?: number;
+type HistoryGridRow = HistoryQueryResultItem;
+
+interface FilterOptions {
+  ocrEngines: string[];
+  vehicleTypes: string[];
+  sources: string[];
 }
 
 declare module "@tanstack/react-table" {
@@ -81,6 +88,7 @@ declare module "@tanstack/react-table" {
       | "selectBoolean"
       | "selectString"
       | "dateRange";
+    selectOptions?: string[];
   }
 }
 
@@ -93,7 +101,8 @@ function Filter({
 }) {
   const id = useId();
   const columnFilterValue = column.getFilterValue();
-  const { filterVariant } = column.columnDef.meta ?? {};
+
+  const { filterVariant, selectOptions } = column.columnDef.meta ?? {};
   const columnHeader = React.isValidElement(column.columnDef.header)
     ? column.id
     : String(column.columnDef.header ?? "");
@@ -101,6 +110,8 @@ function Filter({
   const sortedUniqueValues = useMemo(() => {
     if (filterVariant === "selectBoolean") return ["true", "false"];
     if (filterVariant === "selectString") {
+      if (selectOptions) return [...selectOptions].sort();
+
       const uniqueValues = Array.from(
         column.getFacetedUniqueValues().keys()
       ).filter(
@@ -109,7 +120,7 @@ function Filter({
       return uniqueValues.sort();
     }
     return [];
-  }, [column.getFacetedUniqueValues, filterVariant]);
+  }, [column.getFacetedUniqueValues, filterVariant, selectOptions]);
 
   if (filterVariant === "range") {
     const [min, max] = column.getFacetedMinMaxValues() ?? ["", ""];
@@ -247,223 +258,243 @@ const booleanCellRenderer = (value: boolean | null | undefined) => {
 };
 
 const imageCellRenderer = (value?: string | null) => {
-  return value ? (
-    <img
-      src={value}
-      alt="Processed plate"
-      style={{ height: "30px", objectFit: "contain", margin: "auto" }}
-      loading="lazy"
-      onError={(e) => (e.currentTarget.style.display = "none")} // Hide on error
-    />
-  ) : null;
+  if (!value) return null;
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <div className="relative group mx-auto w-fit h-[30px] cursor-pointer rounded-sm overflow-hidden">
+          <img
+            src={value}
+            alt="Processed plate thumbnail"
+            className="h-full object-contain transition-opacity"
+            loading="lazy"
+            onError={(e) => (e.currentTarget.style.display = "none")}
+          />
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            <ZoomInIcon className="h-4 w-4 text-white" />
+          </div>
+        </div>
+      </DialogTrigger>
+      <DialogContent className="max-w-xl p-2 sm:max-w-2xl md:max-w-3xl lg:max-w-4xl">
+        <DialogTitle className="sr-only">Ảnh biển số phóng to</DialogTitle>
+        <img
+          src={value}
+          alt="Ảnh biển số phóng to"
+          className="w-full h-auto object-contain rounded-md max-h-[85vh]"
+        />
+      </DialogContent>
+    </Dialog>
+  );
 };
 
 const dateFormatter = (value: Date | null): string => {
   return value ? new Date(value).toLocaleString("vi-VN") : "";
 };
 
-const columns: ColumnDef<HistoryGridRow>[] = [
+const getColumns = (
+  filterOptions?: FilterOptions
+): ColumnDef<HistoryGridRow>[] => [
   {
     accessorKey: "date",
     header: "Thời gian",
+    accessorFn: (originalRow) => originalRow.detection?.detectionTime,
     meta: { filterVariant: "dateRange" },
-    cell: ({ row }) => dateFormatter(row.original.date),
-    size: 160,
-    filterFn: (row, columnId, filterValue) => {
-      const date = row.getValue(columnId);
-      if (!(date instanceof Date)) {
-        return false;
-      }
-
-      if (
-        typeof filterValue !== "object" ||
-        filterValue === null ||
-        !("from" in filterValue) ||
-        !("to" in filterValue) ||
-        !(filterValue.from instanceof Date) ||
-        !(filterValue.to instanceof Date)
-      ) {
-        return true;
-      }
-
-      const { from, to } = filterValue as DateRange;
-
-      const effectiveTo = to
-        ? new Date(to.setHours(23, 59, 59, 999))
-        : undefined;
-
-      if (!from || !effectiveTo) return true;
-
-      return isWithinInterval(date, { start: from, end: effectiveTo });
-    },
+    cell: ({ row }) =>
+      dateFormatter(row.original.detection?.detectionTime ?? null),
   },
   {
     accessorKey: "plateNumber",
     header: "Biển số nhận dạng",
     meta: { filterVariant: "text" },
     cell: ({ row }) => row.original.plateNumber,
+    enableHiding: false,
+    size: 120,
+  },
+  {
+    accessorKey: "provinceName",
+    header: "Tỉnh/TP",
+    meta: { filterVariant: "text" },
+    cell: ({ row }) => row.original.provinceName ?? "-",
+    size: 110,
   },
   {
     accessorKey: "isValidFormat",
     header: "Trạng thái nhận dạng",
     meta: { filterVariant: "selectBoolean" },
     cell: ({ row }) => booleanCellRenderer(row.original.isValidFormat),
-    size: 130,
-    filterFn: (row, id, filterValue) => {
-      if (filterValue === undefined) return true;
-      return row.getValue(id) === filterValue;
-    },
-    enableResizing: false,
+    size: 90,
+    enableResizing: true,
   },
   {
     accessorKey: "ocrEngine",
     header: "OCR được dùng",
-    meta: { filterVariant: "selectString" },
+    accessorFn: (originalRow) => originalRow.ocrEngineUsed,
+    meta: {
+      filterVariant: "selectString",
+      selectOptions: filterOptions?.ocrEngines,
+    },
+    enableResizing: true,
+  },
+  {
+    accessorKey: "typeVehicle",
+    header: "Loại xe",
+    accessorFn: (originalRow) => originalRow.typeVehicle,
+    meta: {
+      filterVariant: "selectString",
+      selectOptions: filterOptions?.vehicleTypes,
+    },
+    cell: ({ row }) => row.original.typeVehicle ?? "-",
+    size: 90,
+    enableHiding: true,
+  },
+  {
+    accessorKey: "source",
+    header: "Nguồn",
+    accessorFn: (originalRow) => originalRow.detection?.source,
+    meta: {
+      filterVariant: "selectString",
+      selectOptions: filterOptions?.sources,
+    },
+    cell: ({ row }) => row.original.detection?.source ?? "-",
+    size: 80,
+    enableHiding: true,
   },
   {
     accessorKey: "imageUrl",
     header: "Ảnh",
-    cell: ({ row }) => imageCellRenderer(row.original.imageUrl),
+    accessorFn: (originalRow) => originalRow.detection?.processedImageUrl,
+    cell: ({ row }) =>
+      imageCellRenderer(row.original.detection?.processedImageUrl ?? null),
     enableSorting: false,
     enableColumnFilter: false,
     size: 80,
     enableResizing: false,
+    enableHiding: false,
   },
 ];
 
 const HistoryPage: React.FC = () => {
-  const [data, setData] = useState<HistoryGridRow[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  // nuqs state for filters and sorting
-  const [filtersNuqs, setFiltersNuqs] = useQueryState(
-    "filters",
-    parseAsString.withDefault("[]").withOptions({ shallow: false })
-  );
-  const [sortingNuqs, setSortingNuqs] = useQueryState(
-    "sort",
-    parseAsString.withDefault("[]").withOptions({ shallow: false })
-  );
-
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(() => {
-    try {
-      const parsed = JSON.parse(filtersNuqs);
-      // Ensure it's an array, otherwise default to empty array
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (e) {
-      console.error(
-        "Failed to parse columnFilters from URL, defaulting to empty.",
-        e
-      );
-      return [];
-    }
-  });
-  const [sorting, setSorting] = useState<SortingState>(() => {
-    try {
-      const parsed = JSON.parse(sortingNuqs);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (e) {
-      console.error("Failed to parse sorting from URL, defaulting to empty.", e);
-      return [];
-    }
-  });
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [sorting, setSorting] = useState<SortingState>([]);
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 15,
   });
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 
-  // Fetch data on mount
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      try {
-        const result = await getHistoryAction();
-        if (result.success) {
-          setData(result.rows);
-        } else {
-          console.error("Failed to fetch history:", result.error);
-          setData([]);
-          // TODO: Show toast error
-        }
-      } catch (error) {
-        console.error("Error fetching history:", error);
-        setData([]);
-        // TODO: Show toast error
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+  const historyQuery = useQuery({
+    queryKey: ["history", pagination, sorting, columnFilters],
+    queryFn: () =>
+      getHistoryAction({ pagination, sorting, filters: columnFilters }),
+    placeholderData: (previousData) => previousData,
+  });
 
-  // Sync table state back to nuqs
-  useEffect(() => {
-    setFiltersNuqs(JSON.stringify(columnFilters));
-  }, [columnFilters, setFiltersNuqs]);
+  const filterOptionsQuery = useQuery<FilterOptions>({
+    queryKey: ["historyFilterOptions"],
+    queryFn: getHistoryFilterOptions,
+    staleTime: Infinity,
+  });
 
-  useEffect(() => {
-    setSortingNuqs(JSON.stringify(sorting));
-  }, [sorting, setSortingNuqs]);
+  const {
+    data: historyData,
+    isLoading: isLoadingHistory,
+    isError: isErrorHistory,
+    error: historyError,
+  } = historyQuery;
+  const { data: filterOptions } = filterOptionsQuery;
+
+  const memoizedData = useMemo(() => historyData?.rows ?? [], [historyData]);
+  const totalRowCount = historyData?.totalRowCount ?? 0;
+
+  const pageCount = Math.ceil(totalRowCount / pagination.pageSize);
+
+  const columns = useMemo(() => getColumns(filterOptions), [filterOptions]);
 
   const table = useReactTable({
-    data,
+    data: memoizedData,
     columns,
-    columnResizeMode: "onChange",
+    manualPagination: true,
+    manualSorting: true,
+    manualFiltering: true,
+    pageCount: pageCount,
     state: {
       sorting,
       columnFilters,
       pagination,
+      columnVisibility,
     },
     onColumnFiltersChange: setColumnFilters,
     onSortingChange: setSorting,
     onPaginationChange: setPagination,
-    // Pipeline
+    onColumnVisibilityChange: setColumnVisibility,
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getFacetedRowModel: getFacetedRowModel(),
-    getFacetedUniqueValues: getFacetedUniqueValues(),
-    getFacetedMinMaxValues: getFacetedMinMaxValues(),
-    // defaultColumn: { // Optionally set default size if needed
-    //   size: 150,
-    //   minSize: 50,
-    //   maxSize: 500,
-    // },
+    columnResizeMode: "onChange",
   });
 
   const { pages, showLeftEllipsis, showRightEllipsis } = usePagination({
-    currentPage: table.getState().pagination.pageIndex + 1,
-    totalPages: table.getPageCount(),
+    currentPage: pagination.pageIndex + 1,
+    totalPages: pageCount,
     paginationItemsToDisplay: 5,
   });
 
   return (
     <div className="space-y-4 p-4 lg:p-6">
-      {/* Filters Row */}
-      <div className="flex flex-wrap gap-3 items-end">
-        {table
-          .getHeaderGroups()[0]
-          .headers.filter((header) => header.column.getCanFilter())
-          .map((header) => (
-            <div
-              key={header.id}
-              className="flex-grow lg:flex-grow-0 lg:w-auto"
-              style={{ minWidth: `${header.column.columnDef.size ?? 100}px` }}
-            >
-              <Filter column={header.column} table={table} />
-            </div>
-          ))}
+      <div className="flex flex-wrap gap-3 items-end justify-between">
+        <div className="flex flex-wrap gap-3 items-end">
+          {table
+            .getHeaderGroups()[0]
+            .headers.filter((header) => header.column.getCanFilter())
+            .map((header) => (
+              <div
+                key={header.id}
+                className="flex-shrink-0"
+                style={{ width: `${header.column.columnDef.size ?? 120}px` }}
+              >
+                <Filter column={header.column} table={table} />
+              </div>
+            ))}
+        </div>
+
+        <div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="ml-auto h-8">
+                <Columns3Icon className="mr-1.5 h-4 w-4" />
+                View
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Ẩn/hiện cột</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {table
+                .getAllColumns()
+                .filter((column) => column.getCanHide())
+                .map((column) => {
+                  return (
+                    <DropdownMenuCheckboxItem
+                      key={column.id}
+                      className="capitalize"
+                      checked={column.getIsVisible()}
+                      onCheckedChange={(value) =>
+                        column.toggleVisibility(!!value)
+                      }
+                      onSelect={(event) => event.preventDefault()}
+                    >
+                      {typeof column.columnDef.header === "string"
+                        ? column.columnDef.header
+                        : column.id}
+                    </DropdownMenuCheckboxItem>
+                  );
+                })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
-      {/* Table Wrapper for Sticky Header */}
       <div className="rounded-md border overflow-auto relative max-h-[calc(100vh-280px)]">
-        {" "}
-        {/* Adjust max-h as needed */}
         <Table className="border-collapse border-spacing-0 w-full">
           <TableHeader className="sticky top-0 z-10 bg-background shadow-sm">
-            {" "}
-            {/* Sticky Header */}
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id} className="hover:bg-background">
                 {headerGroup.headers.map((header) => {
@@ -497,7 +528,6 @@ const HistoryPage: React.FC = () => {
                               : "justify-between"
                           )}
                         >
-                          {/* ... Sort icon ... */}
                           <span className="truncate">
                             {flexRender(
                               header.column.columnDef.header,
@@ -524,7 +554,6 @@ const HistoryPage: React.FC = () => {
                           )}
                         </span>
                       )}
-                      {/* Resize Handle */}
                       {header.column.getCanResize() && (
                         <div
                           onMouseDown={header.getResizeHandler()}
@@ -548,16 +577,25 @@ const HistoryPage: React.FC = () => {
             ))}
           </TableHeader>
           <TableBody>
-            {isLoading ? (
+            {isLoadingHistory ? ( // Use history loading state
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
                   Đang tải...
                 </TableCell>
               </TableRow>
+            ) : isErrorHistory ? ( // Use history error state
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center text-destructive"
+                >
+                  Lỗi tải dữ liệu: {historyError?.message ?? "Unknown error"}
+                </TableCell>
+              </TableRow>
             ) : table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
                 <TableRow
-                  key={row.id}
+                  key={row.original.id}
                   data-state={row.getIsSelected() && "selected"}
                 >
                   {row.getVisibleCells().map((cell) => (
@@ -569,7 +607,7 @@ const HistoryPage: React.FC = () => {
                           : undefined,
                       }}
                       className={cn(
-                        "text-xs px-2 py-1.5 border-b border-border truncate", // Add truncate
+                        "text-xs px-2 py-1.5 border-b border-border truncate",
                         (cell.column.id === "isValidFormat" ||
                           cell.column.id === "imageUrl") &&
                           "text-center"
@@ -591,11 +629,9 @@ const HistoryPage: React.FC = () => {
         </Table>
       </div>
 
-      {/* Pagination Controls */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <p className="text-muted-foreground text-xs flex-shrink-0">
-          Trang {table.getState().pagination.pageIndex + 1} /{" "}
-          {table.getPageCount()}({data.length} dòng)
+          Trang {pagination.pageIndex + 1} / {pageCount}({totalRowCount} dòng)
         </p>
 
         <div className="flex-grow flex justify-center">
@@ -621,8 +657,7 @@ const HistoryPage: React.FC = () => {
               )}
 
               {pages.map((page) => {
-                const isActive =
-                  page === table.getState().pagination.pageIndex + 1;
+                const isActive = page === pagination.pageIndex + 1;
                 return (
                   <PaginationItem key={page}>
                     <Button
@@ -663,7 +698,7 @@ const HistoryPage: React.FC = () => {
         <div className="flex items-center space-x-2 flex-shrink-0">
           <span className="text-xs text-muted-foreground">Số dòng:</span>
           <Select
-            value={table.getState().pagination.pageSize.toString()}
+            value={pagination.pageSize.toString()}
             onValueChange={(value) => {
               table.setPageSize(Number(value));
             }}

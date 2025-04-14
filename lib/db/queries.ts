@@ -2,8 +2,29 @@
 
 import { db } from "./index";
 import * as schema from "./schema";
-import { eq, desc, inArray } from "drizzle-orm";
+import {
+  eq,
+  desc,
+  asc,
+  inArray,
+  and,
+  or,
+  sql,
+  ilike,
+  gte,
+  lte,
+  gt,
+  lt,
+  count,
+} from "drizzle-orm";
 import type { ApiResponse } from "@/lib/store/license-plate-store";
+import type {
+  ColumnFiltersState,
+  SortingState,
+  PaginationState,
+} from "@tanstack/react-table";
+import type { DateRange } from "react-day-picker";
+import { isWithinInterval } from "date-fns";
 
 type DetectionInsert = typeof schema.detections.$inferInsert;
 type DetectedPlateResultInsert = typeof schema.detectedPlateResults.$inferInsert;
@@ -141,24 +162,217 @@ export type HistoryQueryResultItem = DetectedPlateResultSelect & {
   licensePlate: LicensePlateSelect | null;
 };
 
+export interface FetchHistoryResult {
+  rows: HistoryQueryResultItem[];
+  totalRowCount: number;
+}
+
+const filterColumnMap: Record<string, any> = {
+  plateNumber: schema.detectedPlateResults.plateNumber,
+  normalizedPlate: schema.detectedPlateResults.normalizedPlate,
+  confidence: schema.detectedPlateResults.confidenceDetection,
+  date: schema.detections.detectionTime,
+  provinceName: schema.detectedPlateResults.provinceName,
+  isValidFormat: schema.detectedPlateResults.isValidFormat,
+  ocrEngine: schema.detectedPlateResults.ocrEngineUsed,
+};
+
+const sortColumnMap: Record<string, any> = {
+  plateNumber: schema.detectedPlateResults.plateNumber,
+  confidence: schema.detectedPlateResults.confidenceDetection,
+  date: schema.detections.detectionTime,
+  provinceName: schema.detectedPlateResults.provinceName,
+  isValidFormat: schema.detectedPlateResults.isValidFormat,
+  ocrEngine: schema.detectedPlateResults.ocrEngineUsed,
+  normalizedPlate: schema.detectedPlateResults.normalizedPlate,
+};
+
 /**
- * Fetches detection history, ordered by result creation time descending.
- * Includes related detection and license plate data.
+ * Parses TanStack Table column filters into Drizzle WHERE conditions.
  */
-export async function fetchDetectionHistory(): Promise<
-  HistoryQueryResultItem[]
-> {
+function parseFiltersToDrizzle(filters: ColumnFiltersState) {
+  const conditions: any[] = [];
+  for (const filter of filters) {
+    const columnId = filter.id;
+    const filterValue = filter.value;
+
+    switch (columnId) {
+      case "plateNumber":
+      case "normalizedPlate":
+      case "provinceName":
+      case "ocrEngine":
+        if (typeof filterValue === "string" && filterValue.length > 0) {
+          const column = filterColumnMap[columnId];
+          if (column) conditions.push(ilike(column, `%${filterValue}%`));
+        }
+        break;
+      case "confidence":
+        if (Array.isArray(filterValue) && filterValue.length === 2) {
+          const [min, max] = filterValue;
+          const column = filterColumnMap[columnId];
+          if (column) {
+            if (typeof min === "number") conditions.push(gte(column, min / 100));
+            if (typeof max === "number") conditions.push(lte(column, max / 100));
+          }
+        }
+        break;
+      case "isValidFormat":
+        if (typeof filterValue === "boolean") {
+          const column = filterColumnMap[columnId];
+          if (column) conditions.push(eq(column, filterValue));
+        }
+        break;
+      case "date":
+        if (
+          typeof filterValue === "object" &&
+          filterValue !== null &&
+          "from" in filterValue &&
+          "to" in filterValue &&
+          filterValue.from instanceof Date &&
+          filterValue.to instanceof Date
+        ) {
+          const { from, to } = filterValue as DateRange;
+          const effectiveTo = to ? new Date(to.setHours(23, 59, 59, 999)) : null;
+          const dateConditions = [];
+          if (from)
+            dateConditions.push(gte(schema.detections.detectionTime, from));
+          if (effectiveTo)
+            dateConditions.push(
+              lte(schema.detections.detectionTime, effectiveTo)
+            );
+          if (dateConditions.length > 0) {
+            conditions.push(
+              sql`"detectionId" IN (SELECT id FROM ${
+                schema.detections
+              } WHERE ${and(...dateConditions)})`
+            );
+          }
+        }
+        break;
+    }
+  }
+  return conditions.length > 0 ? and(...conditions) : undefined;
+}
+
+/**
+ * Parses TanStack Table sorting state into Drizzle ORDER BY clause.
+ */
+function parseSortingToDrizzle(sorting: SortingState) {
+  if (!sorting || sorting.length === 0) {
+    return [desc(schema.detectedPlateResults.createdAt)];
+  }
+
+  const orderBy: any[] = [];
+  for (const sort of sorting) {
+    const columnId = sort.id;
+    const direction = sort.desc ? desc : asc;
+
+    if (columnId === "date") {
+      console.warn(
+        "Server-side sorting by date is complex with db.query, falling back to default sort."
+      );
+    } else {
+      const column = sortColumnMap[columnId];
+      if (column) {
+        orderBy.push(direction(column));
+      }
+    }
+  }
+
+  return orderBy.length > 0
+    ? orderBy
+    : [desc(schema.detectedPlateResults.createdAt)];
+}
+
+/**
+ * Fetches paginated, sorted, and filtered detection history using db.query.
+ */
+export async function fetchDetectionHistory(
+  pagination: PaginationState,
+  sorting: SortingState,
+  filters: ColumnFiltersState
+): Promise<FetchHistoryResult> {
   try {
-    const records = await db.query.detectedPlateResults.findMany({
-      orderBy: [desc(schema.detectedPlateResults.createdAt)],
+    const { pageIndex, pageSize } = pagination;
+    const whereCondition = parseFiltersToDrizzle(filters);
+    const orderByCondition = parseSortingToDrizzle(sorting);
+
+    const countResult = await db
+      .select({ value: count() })
+      .from(schema.detectedPlateResults)
+      .where(whereCondition)
+      .execute();
+    const totalRowCount = countResult[0]?.value ?? 0;
+
+    const rows = await db.query.detectedPlateResults.findMany({
+      where: whereCondition,
+      orderBy: orderByCondition,
+      limit: pageSize,
+      offset: pageIndex * pageSize,
       with: {
         detection: true,
         licensePlate: true,
       },
     });
-    return records;
+
+    return { rows: rows as HistoryQueryResultItem[], totalRowCount };
   } catch (error) {
     console.error("Error fetching detection history:", error);
     throw new Error("Failed to fetch history data via query function.");
+  }
+}
+
+export async function getFilterOptions(): Promise<{
+  ocrEngines: string[];
+  vehicleTypes: string[];
+  sources: string[];
+}> {
+  try {
+    const ocrEnginesPromise = db
+      .selectDistinct({
+        ocrEngineUsed: schema.detectedPlateResults.ocrEngineUsed,
+      })
+      .from(schema.detectedPlateResults)
+      .where(sql`${schema.detectedPlateResults.ocrEngineUsed} IS NOT NULL`);
+
+    const vehicleTypesPromise = db
+      .selectDistinct({ typeVehicle: schema.detectedPlateResults.typeVehicle })
+      .from(schema.detectedPlateResults)
+      .where(sql`${schema.detectedPlateResults.typeVehicle} IS NOT NULL`);
+
+    const sourcesPromise = db
+      .selectDistinct({ source: schema.detections.source })
+      .from(schema.detections)
+      .where(sql`${schema.detections.source} IS NOT NULL`);
+
+    const [ocrResults, vehicleResults, sourceResults] = await Promise.all([
+      ocrEnginesPromise,
+      vehicleTypesPromise,
+      sourcesPromise,
+    ]);
+
+    // Filter out null/undefined values and then cast to string array
+    const ocrEngines = ocrResults
+      .map((r) => r.ocrEngineUsed)
+      .filter((v) => v != null) as string[];
+    const vehicleTypes = vehicleResults
+      .map((r) => r.typeVehicle)
+      .filter((v) => v != null) as string[];
+    const sources = sourceResults
+      .map((r) => r.source)
+      .filter((v) => v != null) as string[];
+
+    return {
+      ocrEngines,
+      vehicleTypes,
+      sources,
+    };
+  } catch (error) {
+    console.error("Error fetching filter options:", error);
+    return {
+      ocrEngines: [],
+      vehicleTypes: [],
+      sources: [],
+    };
   }
 }
