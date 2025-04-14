@@ -29,6 +29,7 @@ export interface BackendDetection {
 export interface ApiResponse {
   detections: BackendDetection[];
   processed_image_url: string | null;
+  processing_time_ms?: number;
   error: string | null;
 }
 
@@ -51,7 +52,8 @@ interface LicensePlateState {
   error: string | null;
   selectedDetection: string;
 
-  setSelectedFile: (file: File | null) => void;  setPreviewUrl: (url: string | null) => void;
+  setSelectedFile: (file: File | null) => void;
+  setPreviewUrl: (url: string | null) => void;
   setImageUrl: (url: string) => void;
   setInputMethod: (method: "file" | "url") => void;
   setLoading: (isLoading: boolean) => void;

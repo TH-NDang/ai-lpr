@@ -359,6 +359,14 @@ const getColumns = (
     cell: ({ row }) => row.original.detection?.source ?? "-",
     size: 80,
     enableHiding: true,
+    },
+  {
+    accessorKey: "processTime",
+    header: "Thời gian xử lý",
+    accessorFn: (originalRow) => originalRow.detection?.processTimeMs,
+    cell: ({ row }) => row.original.detection?.processTimeMs ?? "-",
+    size: 80,
+    enableHiding: true,
   },
   {
     accessorKey: "imageUrl",

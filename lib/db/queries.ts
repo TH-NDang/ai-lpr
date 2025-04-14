@@ -61,6 +61,10 @@ export async function insertDetectionAndResults(
           imageUrl: originalImageUrl,
           processedImageUrl: apiResponse.processed_image_url,
           detectionTime: new Date(),
+          processTimeMs:
+            typeof apiResponse.processing_time_ms === "number"
+              ? Math.round(apiResponse.processing_time_ms)
+              : null,
         })
         .returning({ insertedId: schema.detections.id });
 
