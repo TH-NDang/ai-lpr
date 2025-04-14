@@ -4,7 +4,7 @@ import {
   insertDetectionAndResults,
   fetchDetectionHistory,
   getFilterOptions,
-  FetchHistoryResult,
+  type FetchHistoryResult,
 } from "@/lib/db/queries";
 
 import type { ApiResponse } from "@/lib/store/license-plate-store";
@@ -51,8 +51,7 @@ export async function processLicensePlateImage(
     apiResponseData = await response.json();
 
     if (
-      apiResponseData &&
-      apiResponseData.detections &&
+      apiResponseData?.detections &&
       apiResponseData.detections.length > 0
     ) {
       try {
@@ -147,8 +146,7 @@ export async function processLicensePlateFromUrl(
     apiResponseData = await response.json();
 
     if (
-      apiResponseData &&
-      apiResponseData.detections &&
+      apiResponseData?.detections &&
       apiResponseData.detections.length > 0
     ) {
       try {

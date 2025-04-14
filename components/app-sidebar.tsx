@@ -1,16 +1,10 @@
 "use client";
-
-import { useRouter, usePathname } from "next/navigation";
 import {
   type LucideIcon,
   History,
-  MessageSquare,
   ImageIcon,
 } from "lucide-react";
-
-import { PlusIcon } from "@/components/icons";
 import { SidebarUserNav } from "@/components/sidebar-user-nav";
-import { Button } from "@/components/ui/button";
 import {
   Sidebar,
   SidebarContent,
@@ -21,8 +15,6 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
-import Link from "next/link";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { NavMain } from "./nav-main";
 
 type NavItem = {
@@ -61,7 +53,7 @@ export function AppSidebar() {
         </SidebarMenu>
         <NavMain items={mainNavItems} />
       </SidebarHeader>
-      <SidebarContent></SidebarContent>
+      <SidebarContent />
       <SidebarFooter>
         <SidebarUserNav />
       </SidebarFooter>

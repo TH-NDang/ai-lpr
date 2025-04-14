@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+
 import { LicensePlateUpload } from '@/components/license-plate-upload'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { Separator } from '@/components/ui/separator'

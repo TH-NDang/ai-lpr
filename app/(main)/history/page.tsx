@@ -1,18 +1,18 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useId } from "react";
+import React, { useState, useMemo, useId } from "react";
 import {
-  ColumnDef,
-  ColumnFiltersState,
-  SortingState,
-  PaginationState,
+  type ColumnDef,
+  type ColumnFiltersState,
+  type SortingState,
+  type PaginationState,
   flexRender,
   getCoreRowModel,
   useReactTable,
-  Column,
-  Table as ReactTable,
-  RowData,
-  VisibilityState,
+  type Column,
+  type Table as ReactTable,
+  type RowData,
+  type VisibilityState,
 } from "@tanstack/react-table";
 import {
   Table,
@@ -53,8 +53,6 @@ import { usePagination } from "@/hooks/use-pagination";
 import { cn } from "@/lib/utils";
 import { getHistoryAction, getHistoryFilterOptions } from "../actions";
 import { DateRangeFilter } from "@/components/date-range-filter";
-import { isWithinInterval, parseISO } from "date-fns";
-import { DateRange } from "react-day-picker";
 import { useQuery } from "@tanstack/react-query";
 import type { HistoryQueryResultItem } from "@/lib/db/queries";
 import {
@@ -401,7 +399,7 @@ const HistoryPage: React.FC = () => {
   const filterOptionsQuery = useQuery<FilterOptions>({
     queryKey: ["historyFilterOptions"],
     queryFn: getHistoryFilterOptions,
-    staleTime: Infinity,
+    staleTime: Number.POSITIVE_INFINITY,
   });
 
   const {

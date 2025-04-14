@@ -8,13 +8,10 @@ import {
   asc,
   inArray,
   and,
-  or,
   sql,
   ilike,
   gte,
   lte,
-  gt,
-  lt,
   count,
 } from "drizzle-orm";
 import type { ApiResponse } from "@/lib/store/license-plate-store";
@@ -24,7 +21,6 @@ import type {
   PaginationState,
 } from "@tanstack/react-table";
 import type { DateRange } from "react-day-picker";
-import { isWithinInterval } from "date-fns";
 
 type DetectionInsert = typeof schema.detections.$inferInsert;
 type DetectedPlateResultInsert = typeof schema.detectedPlateResults.$inferInsert;
