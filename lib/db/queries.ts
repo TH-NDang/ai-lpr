@@ -142,7 +142,7 @@ export type HistoryQueryResultItem = DetectedPlateResultSelect & {
 };
 
 /**
- * Fetches detection history, ordered by detection time descending.
+ * Fetches detection history, ordered by result creation time descending.
  * Includes related detection and license plate data.
  */
 export async function fetchDetectionHistory(): Promise<
@@ -150,7 +150,7 @@ export async function fetchDetectionHistory(): Promise<
 > {
   try {
     const records = await db.query.detectedPlateResults.findMany({
-      orderBy: [desc(schema.detections.detectionTime)],
+      orderBy: [desc(schema.detectedPlateResults.createdAt)],
       with: {
         detection: true,
         licensePlate: true,

@@ -1,308 +1,689 @@
 "use client";
 
-import React, { useState, useCallback, useRef, useMemo, useEffect } from "react";
-import { AgGridReact } from "ag-grid-react";
-import "ag-grid-community/styles/ag-grid.css";
-import "ag-grid-community/styles/ag-theme-quartz.css";
-import {
-  ColDef,
-  GridApi,
-  GridReadyEvent,
-  SortModelItem,
-  ModuleRegistry,
-  FilterChangedEvent,
-  SortChangedEvent,
-  ValueFormatterParams,
-} from "ag-grid-community";
-import { CheckCircle2, AlertCircle } from "lucide-react"; // Import icons for boolean display
+import React, { useState, useEffect, useMemo, useId } from "react";
 import { parseAsString, useQueryState } from "nuqs";
-import { getHistoryAction } from "../actions"; // Use the new action
-// Remove transformDbRecordToColumnSchema import as it's not used here anymore
+import {
+  ColumnDef,
+  ColumnFiltersState,
+  SortingState,
+  PaginationState,
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getSortedRowModel,
+  getPaginationRowModel,
+  getFacetedRowModel,
+  getFacetedUniqueValues,
+  getFacetedMinMaxValues,
+  useReactTable,
+  Column,
+  Table as ReactTable,
+  RowData,
+} from "@tanstack/react-table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import {
+  CheckCircle2,
+  AlertCircle,
+  ChevronDownIcon,
+  ChevronUpIcon,
+  SearchIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+} from "lucide-react";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+} from "@/components/ui/pagination";
+import { usePagination } from "@/hooks/use-pagination";
+import { cn } from "@/lib/utils";
+import { getHistoryAction } from "../actions";
+import { DateRangeFilter } from "@/components/date-range-filter";
+import { isWithinInterval, parseISO } from "date-fns";
+import { DateRange } from "react-day-picker";
 
-// Define the type for grid rows based on HistoryGridRow in actions.ts
 interface HistoryGridRow {
   id: number;
   plateNumber: string;
+  normalizedPlate?: string | null;
   confidence: number;
   date: Date | null;
   provinceName: string | null;
-  vehicleType: string | null;
   imageUrl: string | null;
   isValidFormat?: boolean | null;
   ocrEngine?: string | null;
   detectionId?: number;
-  isVerified?: boolean | null;
 }
 
-// Helper function for boolean cell rendering
-const booleanCellRenderer = (params: { value: boolean | null | undefined }) => {
-  if (params.value === true) {
-    return <CheckCircle2 className="text-green-500" size={16} />;
-  } else if (params.value === false) {
-    return <AlertCircle className="text-red-500" size={16} />;
+declare module "@tanstack/react-table" {
+  interface ColumnMeta<TData extends RowData, TValue> {
+    filterVariant?:
+      | "text"
+      | "range"
+      | "selectBoolean"
+      | "selectString"
+      | "dateRange";
   }
-  return null; // Handle null or undefined
-};
+}
 
-// Helper function for boolean value formatting (for filter/tooltip)
-const booleanFormatter = (params: ValueFormatterParams): string => {
-  if (params.value === true) return "Yes";
-  if (params.value === false) return "No";
-  return "";
-};
+function Filter({
+  column,
+  table,
+}: {
+  column: Column<HistoryGridRow, unknown>;
+  table: ReactTable<HistoryGridRow>;
+}) {
+  const id = useId();
+  const columnFilterValue = column.getFilterValue();
+  const { filterVariant } = column.columnDef.meta ?? {};
+  const columnHeader = React.isValidElement(column.columnDef.header)
+    ? column.id
+    : String(column.columnDef.header ?? "");
 
-// Define column definitions for AG Grid based on HistoryGridRow
-const columnDefs: ColDef<HistoryGridRow>[] = [
-  {
-    field: "plateNumber",
-    headerName: "Biển số",
-    filter: "agTextColumnFilter",
-    sortable: true,
-  },
-  {
-    field: "confidence",
-    headerName: "Độ tin cậy (%)",
-    filter: "agNumberColumnFilter",
-    sortable: true,
-    valueFormatter: (params) => (params.value ? `${params.value}%` : ""),
-  },
-  {
-    field: "date",
-    headerName: "Thời gian",
-    filter: "agDateColumnFilter",
-    sortable: true,
-    valueFormatter: (params) =>
-      params.value ? new Date(params.value).toLocaleString("vi-VN") : "", // Format date/time
-    filterParams: {
-      // Provide comparator for date filtering
-      comparator: function (filterLocalDateAtMidnight: Date, cellValue: string) {
-        const dateAsString = cellValue;
-        if (dateAsString == null) return -1;
-        const cellDate = new Date(dateAsString);
-        if (filterLocalDateAtMidnight.getTime() == cellDate.getTime()) {
-          return 0;
-        }
-        if (cellDate < filterLocalDateAtMidnight) {
-          return -1;
-        }
-        if (cellDate > filterLocalDateAtMidnight) {
-          return 1;
-        }
-        return 0;
-      },
-    },
-  },
-  {
-    field: "provinceName",
-    headerName: "Tỉnh/TP",
-    filter: "agTextColumnFilter",
-    sortable: true,
-  },
-  {
-    field: "vehicleType",
-    headerName: "Loại phương tiện",
-    filter: "agTextColumnFilter",
-    sortable: true,
-  },
-  {
-    field: "isValidFormat",
-    headerName: "Định dạng hợp lệ",
-    filter: "agSetColumnFilter", // Use Set Filter for boolean
-    sortable: true,
-    cellRenderer: booleanCellRenderer, // Use icon renderer
-    valueFormatter: booleanFormatter, // Text for filter/tooltip
-    filterParams: {
-      values: [true, false], // Provide values for Set Filter
-      valueFormatter: booleanFormatter, // Format values in filter
-    },
-    width: 150,
-    cellStyle: { textAlign: "center" },
-  },
-  {
-    field: "ocrEngine",
-    headerName: "OCR Engine",
-    filter: "agTextColumnFilter",
-    sortable: true,
-  },
-  {
-    field: "isVerified",
-    headerName: "Đã xác thực",
-    filter: "agSetColumnFilter", // Use Set Filter for boolean
-    sortable: true,
-    cellRenderer: booleanCellRenderer, // Use icon renderer
-    valueFormatter: booleanFormatter, // Text for filter/tooltip
-    filterParams: {
-      values: [true, false],
-      valueFormatter: booleanFormatter,
-    },
-    width: 130,
-    cellStyle: { textAlign: "center" },
-  },
-  {
-    field: "imageUrl",
-    headerName: "Ảnh gốc",
-    cellRenderer: (params: { value?: string }) =>
-      params.value ? (
-        <img
-          src={params.value}
-          alt="Biển số đã xử lý"
-          style={{ height: "30px", objectFit: "contain" }}
-          loading="lazy"
+  const sortedUniqueValues = useMemo(() => {
+    if (filterVariant === "selectBoolean") return ["true", "false"];
+    if (filterVariant === "selectString") {
+      const uniqueValues = Array.from(
+        column.getFacetedUniqueValues().keys()
+      ).filter(
+        (value): value is string => value !== null && value !== undefined
+      );
+      return uniqueValues.sort();
+    }
+    return [];
+  }, [column.getFacetedUniqueValues, filterVariant]);
+
+  if (filterVariant === "range") {
+    const [min, max] = column.getFacetedMinMaxValues() ?? ["", ""];
+    return (
+      <div className="*:not-first:mt-1 space-y-1">
+        <Label htmlFor={`${id}-range-1`}>{columnHeader}</Label>
+        <div className="flex gap-1">
+          <Input
+            id={`${id}-range-1`}
+            className="flex-1 rounded-e-none h-8 text-xs [-moz-appearance:_textfield] focus:z-10 [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none"
+            value={(columnFilterValue as [number, number])?.[0] ?? ""}
+            onChange={(e) =>
+              column.setFilterValue((old: [number, number]) => [
+                e.target.value ? Number(e.target.value) : undefined,
+                old?.[1],
+              ])
+            }
+            placeholder={`Min ${min ? `(${min})` : ""}`}
+            type="number"
+            aria-label={`${columnHeader} min`}
+          />
+          <Input
+            id={`${id}-range-2`}
+            className="-ms-px flex-1 rounded-s-none h-8 text-xs [-moz-appearance:_textfield] focus:z-10 [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none"
+            value={(columnFilterValue as [number, number])?.[1] ?? ""}
+            onChange={(e) =>
+              column.setFilterValue((old: [number, number]) => [
+                old?.[0],
+                e.target.value ? Number(e.target.value) : undefined,
+              ])
+            }
+            placeholder={`Max ${max ? `(${max})` : ""}`}
+            type="number"
+            aria-label={`${columnHeader} max`}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (filterVariant === "selectBoolean") {
+    return (
+      <div className="*:not-first:mt-1 space-y-1">
+        <Label htmlFor={`${id}-select`}>{columnHeader}</Label>
+        <Select
+          value={columnFilterValue?.toString() ?? "all"}
+          onValueChange={(value) => {
+            column.setFilterValue(
+              value === "all" ? undefined : value === "true"
+            );
+          }}
+        >
+          <SelectTrigger id={`${id}-select`} className="h-8 text-xs">
+            <SelectValue placeholder="Chọn..." />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả</SelectItem>
+            <SelectItem value="true">Hợp lệ</SelectItem>
+            <SelectItem value="false">Không hợp lệ</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+    );
+  }
+
+  if (filterVariant === "selectString") {
+    return (
+      <div className="*:not-first:mt-1 space-y-1">
+        <Label htmlFor={`${id}-select-str`}>{columnHeader}</Label>
+        <Select
+          value={(columnFilterValue ?? "all") as string}
+          onValueChange={(value) =>
+            column.setFilterValue(value === "all" ? undefined : value)
+          }
+        >
+          <SelectTrigger id={`${id}-select-str`} className="h-8 text-xs">
+            <SelectValue placeholder="Chọn..." />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả</SelectItem>
+            {sortedUniqueValues.map((value) => (
+              <SelectItem key={value} value={value}>
+                {value}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    );
+  }
+
+  if (filterVariant === "dateRange") {
+    return (
+      <div className="*:not-first:mt-1 space-y-1">
+        <Label htmlFor={`${id}-date-range`} className="text-xs font-normal">
+          {String(column.columnDef.header ?? column.id)}
+        </Label>
+        <DateRangeFilter column={column} />
+      </div>
+    );
+  }
+
+  const isDateFilter = column.id === "date";
+  return (
+    <div className="*:not-first:mt-1 space-y-1">
+      <Label htmlFor={`${id}-input`} className="text-xs font-normal">
+        {columnHeader}
+      </Label>
+      <div className="relative">
+        <Input
+          id={`${id}-input`}
+          className="peer ps-8 h-8 text-xs"
+          value={(columnFilterValue ?? "") as string}
+          onChange={(e) => column.setFilterValue(e.target.value)}
+          placeholder={
+            isDateFilter ? "Tìm ngày/giờ..." : `Tìm ${columnHeader}...`
+          }
+          type="text"
         />
-      ) : null,
-    sortable: false,
-    filter: false,
-    width: 100,
+        <div className="text-muted-foreground/80 pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-2.5 peer-disabled:opacity-50">
+          <SearchIcon size={14} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const booleanCellRenderer = (value: boolean | null | undefined) => {
+  if (value === true) {
+    return <CheckCircle2 className="text-green-500 mx-auto" size={16} />;
+  } else if (value === false) {
+    return <AlertCircle className="text-red-500 mx-auto" size={16} />;
+  }
+  return null;
+};
+
+const imageCellRenderer = (value?: string | null) => {
+  return value ? (
+    <img
+      src={value}
+      alt="Processed plate"
+      style={{ height: "30px", objectFit: "contain", margin: "auto" }}
+      loading="lazy"
+      onError={(e) => (e.currentTarget.style.display = "none")} // Hide on error
+    />
+  ) : null;
+};
+
+const dateFormatter = (value: Date | null): string => {
+  return value ? new Date(value).toLocaleString("vi-VN") : "";
+};
+
+const columns: ColumnDef<HistoryGridRow>[] = [
+  {
+    accessorKey: "date",
+    header: "Thời gian",
+    meta: { filterVariant: "dateRange" },
+    cell: ({ row }) => dateFormatter(row.original.date),
+    size: 160,
+    filterFn: (row, columnId, filterValue) => {
+      const date = row.getValue(columnId);
+      if (!(date instanceof Date)) {
+        return false;
+      }
+
+      if (
+        typeof filterValue !== "object" ||
+        filterValue === null ||
+        !("from" in filterValue) ||
+        !("to" in filterValue) ||
+        !(filterValue.from instanceof Date) ||
+        !(filterValue.to instanceof Date)
+      ) {
+        return true;
+      }
+
+      const { from, to } = filterValue as DateRange;
+
+      const effectiveTo = to
+        ? new Date(to.setHours(23, 59, 59, 999))
+        : undefined;
+
+      if (!from || !effectiveTo) return true;
+
+      return isWithinInterval(date, { start: from, end: effectiveTo });
+    },
   },
-  // Add more columns as needed (e.g., detectionId if useful)
+  {
+    accessorKey: "plateNumber",
+    header: "Biển số nhận dạng",
+    meta: { filterVariant: "text" },
+    cell: ({ row }) => row.original.plateNumber,
+  },
+  {
+    accessorKey: "isValidFormat",
+    header: "Trạng thái nhận dạng",
+    meta: { filterVariant: "selectBoolean" },
+    cell: ({ row }) => booleanCellRenderer(row.original.isValidFormat),
+    size: 130,
+    filterFn: (row, id, filterValue) => {
+      if (filterValue === undefined) return true;
+      return row.getValue(id) === filterValue;
+    },
+    enableResizing: false,
+  },
+  {
+    accessorKey: "ocrEngine",
+    header: "OCR được dùng",
+    meta: { filterVariant: "selectString" },
+  },
+  {
+    accessorKey: "imageUrl",
+    header: "Ảnh",
+    cell: ({ row }) => imageCellRenderer(row.original.imageUrl),
+    enableSorting: false,
+    enableColumnFilter: false,
+    size: 80,
+    enableResizing: false,
+  },
 ];
 
 const HistoryPage: React.FC = () => {
-  const gridRef = useRef<AgGridReact<HistoryGridRow>>(null);
-  const [rowData, setRowData] = useState<HistoryGridRow[]>([]); // Use new row type
-  const [isLoading, setIsLoading] = useState(true); // Loading state
+  const [data, setData] = useState<HistoryGridRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Use nuqs to read/write state from/to URL
-  const [sortModelNuqs, setSortModelNuqs] = useQueryState(
-    "sortModel",
-    parseAsString.withOptions({ shallow: false }).withDefault("[]")
+  // nuqs state for filters and sorting
+  const [filtersNuqs, setFiltersNuqs] = useQueryState(
+    "filters",
+    parseAsString.withDefault("[]").withOptions({ shallow: false })
   );
-  const [filterModelNuqs, setFilterModelNuqs] = useQueryState(
-    "filterModel",
-    parseAsString.withOptions({ shallow: false }).withDefault("{}")
+  const [sortingNuqs, setSortingNuqs] = useQueryState(
+    "sort",
+    parseAsString.withDefault("[]").withOptions({ shallow: false })
   );
 
-  // Fetch data using the new server action
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>(() => {
+    try {
+      const parsed = JSON.parse(filtersNuqs);
+      // Ensure it's an array, otherwise default to empty array
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      console.error(
+        "Failed to parse columnFilters from URL, defaulting to empty.",
+        e
+      );
+      return [];
+    }
+  });
+  const [sorting, setSorting] = useState<SortingState>(() => {
+    try {
+      const parsed = JSON.parse(sortingNuqs);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      console.error("Failed to parse sorting from URL, defaulting to empty.", e);
+      return [];
+    }
+  });
+  const [pagination, setPagination] = useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 15,
+  });
+
+  // Fetch data on mount
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        // Parse initial models from nuqs for the first fetch
-        const initialSortModel = JSON.parse(sortModelNuqs);
-        const initialFilterModel = JSON.parse(filterModelNuqs);
-
-        // Call the new action
-        const result = await getHistoryAction({
-          sortModel: initialSortModel,
-          filterModel: initialFilterModel,
-        });
-
+        const result = await getHistoryAction();
         if (result.success) {
-          setRowData(result.rows); // Set data with the correct type
+          setData(result.rows);
         } else {
-          console.error("Failed to fetch history data:", result.error);
-          setRowData([]); // Clear data on error
-          // Consider showing an error message to the user
+          console.error("Failed to fetch history:", result.error);
+          setData([]);
+          // TODO: Show toast error
         }
       } catch (error) {
-        console.error("Error fetching history data:", error);
-        setRowData([]);
-        // Consider showing an error message to the user
+        console.error("Error fetching history:", error);
+        setData([]);
+        // TODO: Show toast error
       } finally {
         setIsLoading(false);
       }
     };
     fetchData();
-    // Dependencies remain the same for now
-  }, [sortModelNuqs, filterModelNuqs]);
-
-  // Restore grid state from URL when grid is ready
-  const onGridReady = useCallback(
-    (params: GridReadyEvent<HistoryGridRow>) => {
-      // Specify grid type
-      try {
-        const initialSortModel = JSON.parse(sortModelNuqs);
-        const initialFilterModel = JSON.parse(filterModelNuqs);
-
-        // Apply initial sort state
-        if (initialSortModel && initialSortModel.length > 0) {
-          // Map colId to ensure they exist in the new columnDefs
-          const validSortState = initialSortModel
-            .filter((s: SortModelItem) =>
-              columnDefs.some((col) => col.field === s.colId)
-            )
-            .map((s: SortModelItem) => ({ colId: s.colId, sort: s.sort }));
-
-          if (validSortState.length > 0) {
-            params.api.applyColumnState({
-              state: validSortState,
-              defaultState: { sort: null },
-            });
-          }
-        }
-        // Apply initial filter state
-        if (initialFilterModel && Object.keys(initialFilterModel).length > 0) {
-          // Filter the model to include only keys present in columnDefs
-          const validFilterModel: { [key: string]: any } = {};
-          for (const key in initialFilterModel) {
-            if (columnDefs.some((col) => col.field === key)) {
-              validFilterModel[key] = initialFilterModel[key];
-            }
-          }
-          if (Object.keys(validFilterModel).length > 0) {
-            params.api.setFilterModel(validFilterModel);
-          }
-        }
-      } catch (e) {
-        console.error("Failed to parse or apply initial state from URL", e);
-      }
-    },
-    [sortModelNuqs, filterModelNuqs] // Dependencies for initial state restoration
-  );
-
-  // Update nuqs state when user interacts with the grid
-  const onSortChanged = useCallback(
-    (event: SortChangedEvent<HistoryGridRow>) => {
-      // Specify grid type
-      // Get sort state directly using getColumnState
-      const currentSortModel = event.api
-        .getColumnState()
-        .filter((s) => s.sort != null)
-        .map((s) => ({ colId: s.colId!, sort: s.sort })); // Map to SortModelItem structure, ensure colId is string
-      setSortModelNuqs(JSON.stringify(currentSortModel));
-    },
-    [setSortModelNuqs]
-  );
-
-  const onFilterChanged = useCallback(
-    (event: FilterChangedEvent<HistoryGridRow>) => {
-      // Specify grid type
-      const currentFilterModel = event.api.getFilterModel();
-      setFilterModelNuqs(JSON.stringify(currentFilterModel));
-    },
-    [setFilterModelNuqs]
-  );
-
-  const defaultColDef = useMemo<ColDef>(() => {
-    return {
-      resizable: true,
-      floatingFilter: true,
-      sortable: true,
-      filter: true,
-      minWidth: 100, // Set a default minimum width
-    };
   }, []);
 
+  // Sync table state back to nuqs
+  useEffect(() => {
+    setFiltersNuqs(JSON.stringify(columnFilters));
+  }, [columnFilters, setFiltersNuqs]);
+
+  useEffect(() => {
+    setSortingNuqs(JSON.stringify(sorting));
+  }, [sorting, setSortingNuqs]);
+
+  const table = useReactTable({
+    data,
+    columns,
+    columnResizeMode: "onChange",
+    state: {
+      sorting,
+      columnFilters,
+      pagination,
+    },
+    onColumnFiltersChange: setColumnFilters,
+    onSortingChange: setSorting,
+    onPaginationChange: setPagination,
+    // Pipeline
+    getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    getFacetedRowModel: getFacetedRowModel(),
+    getFacetedUniqueValues: getFacetedUniqueValues(),
+    getFacetedMinMaxValues: getFacetedMinMaxValues(),
+    // defaultColumn: { // Optionally set default size if needed
+    //   size: 150,
+    //   minSize: 50,
+    //   maxSize: 500,
+    // },
+  });
+
+  const { pages, showLeftEllipsis, showRightEllipsis } = usePagination({
+    currentPage: table.getState().pagination.pageIndex + 1,
+    totalPages: table.getPageCount(),
+    paginationItemsToDisplay: 5,
+  });
+
   return (
-    <div className="ag-theme-quartz" style={{ height: "80vh", width: "100%" }}>
-      <AgGridReact<HistoryGridRow> // Use new row type
-        ref={gridRef}
-        rowData={rowData} // Pass client-side data
-        columnDefs={columnDefs} // Use updated column definitions
-        defaultColDef={defaultColDef}
-        pagination={true}
-        paginationPageSize={100} // Adjust as needed
-        paginationPageSizeSelector={[10, 50, 100, 500]} // Add page size selector
-        onGridReady={onGridReady}
-        onSortChanged={onSortChanged}
-        onFilterChanged={onFilterChanged}
-        // Show loading overlay
-        loadingOverlayComponent={
-          isLoading ? undefined : () => "Không có dữ liệu"
-        } // Basic overlay
-        suppressLoadingOverlay={!isLoading}
-        suppressNoRowsOverlay={isLoading}
-      />
+    <div className="space-y-4 p-4 lg:p-6">
+      {/* Filters Row */}
+      <div className="flex flex-wrap gap-3 items-end">
+        {table
+          .getHeaderGroups()[0]
+          .headers.filter((header) => header.column.getCanFilter())
+          .map((header) => (
+            <div
+              key={header.id}
+              className="flex-grow lg:flex-grow-0 lg:w-auto"
+              style={{ minWidth: `${header.column.columnDef.size ?? 100}px` }}
+            >
+              <Filter column={header.column} table={table} />
+            </div>
+          ))}
+      </div>
+
+      {/* Table Wrapper for Sticky Header */}
+      <div className="rounded-md border overflow-auto relative max-h-[calc(100vh-280px)]">
+        {" "}
+        {/* Adjust max-h as needed */}
+        <Table className="border-collapse border-spacing-0 w-full">
+          <TableHeader className="sticky top-0 z-10 bg-background shadow-sm">
+            {" "}
+            {/* Sticky Header */}
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id} className="hover:bg-background">
+                {headerGroup.headers.map((header) => {
+                  return (
+                    <TableHead
+                      key={header.id}
+                      colSpan={header.colSpan}
+                      style={{
+                        width: header.column.columnDef.size
+                          ? header.getSize()
+                          : undefined,
+                      }}
+                      className={cn(
+                        "relative h-10 whitespace-nowrap px-2 border-b border-border",
+                        (header.column.id === "isValidFormat" ||
+                          header.column.id === "imageUrl") &&
+                          "text-center",
+                        header.column.getCanResize() &&
+                          "cursor-col-resize select-none"
+                      )}
+                    >
+                      {header.isPlaceholder ? null : header.column.getCanSort() ? (
+                        <Button
+                          variant="ghost"
+                          onClick={header.column.getToggleSortingHandler()}
+                          className={cn(
+                            "px-1 py-1 h-auto w-full flex items-center text-xs font-medium",
+                            header.column.id === "isValidFormat" ||
+                              header.column.id === "imageUrl"
+                              ? "justify-center"
+                              : "justify-between"
+                          )}
+                        >
+                          {/* ... Sort icon ... */}
+                          <span className="truncate">
+                            {flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                          </span>
+                          {{
+                            asc: <ChevronUpIcon className="ms-1 h-3 w-3" />,
+                            desc: <ChevronDownIcon className="ms-1 h-3 w-3" />,
+                          }[header.column.getIsSorted() as string] ?? null}
+                        </Button>
+                      ) : (
+                        <span
+                          className={cn(
+                            "text-xs font-medium px-1 truncate",
+                            (header.column.id === "isValidFormat" ||
+                              header.column.id === "imageUrl") &&
+                              "block text-center"
+                          )}
+                        >
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                        </span>
+                      )}
+                      {/* Resize Handle */}
+                      {header.column.getCanResize() && (
+                        <div
+                          onMouseDown={header.getResizeHandler()}
+                          onTouchStart={header.getResizeHandler()}
+                          onDoubleClick={() => header.column.resetSize()}
+                          className={cn(
+                            "absolute top-0 right-0 h-full w-1 cursor-col-resize select-none touch-none",
+                            table.options.columnResizeDirection === "ltr"
+                              ? "right-0"
+                              : "left-0",
+                            header.column.getIsResizing()
+                              ? "bg-primary opacity-50"
+                              : ""
+                          )}
+                        />
+                      )}
+                    </TableHead>
+                  );
+                })}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-24 text-center">
+                  Đang tải...
+                </TableCell>
+              </TableRow>
+            ) : table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell
+                      key={cell.id}
+                      style={{
+                        width: cell.column.columnDef.size
+                          ? cell.column.getSize()
+                          : undefined,
+                      }}
+                      className={cn(
+                        "text-xs px-2 py-1.5 border-b border-border truncate", // Add truncate
+                        (cell.column.id === "isValidFormat" ||
+                          cell.column.id === "imageUrl") &&
+                          "text-center"
+                      )}
+                    >
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-24 text-center">
+                  Không tìm thấy kết quả.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Pagination Controls */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <p className="text-muted-foreground text-xs flex-shrink-0">
+          Trang {table.getState().pagination.pageIndex + 1} /{" "}
+          {table.getPageCount()}({data.length} dòng)
+        </p>
+
+        <div className="flex-grow flex justify-center">
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="h-8 w-8 disabled:pointer-events-none disabled:opacity-50"
+                  onClick={() => table.previousPage()}
+                  disabled={!table.getCanPreviousPage()}
+                  aria-label="Go to previous page"
+                >
+                  <ChevronLeftIcon size={16} />
+                </Button>
+              </PaginationItem>
+
+              {showLeftEllipsis && (
+                <PaginationItem>
+                  <PaginationEllipsis />
+                </PaginationItem>
+              )}
+
+              {pages.map((page) => {
+                const isActive =
+                  page === table.getState().pagination.pageIndex + 1;
+                return (
+                  <PaginationItem key={page}>
+                    <Button
+                      size="icon"
+                      className="h-8 w-8"
+                      variant={isActive ? "outline" : "ghost"}
+                      onClick={() => table.setPageIndex(page - 1)}
+                      aria-current={isActive ? "page" : undefined}
+                    >
+                      {page}
+                    </Button>
+                  </PaginationItem>
+                );
+              })}
+
+              {showRightEllipsis && (
+                <PaginationItem>
+                  <PaginationEllipsis />
+                </PaginationItem>
+              )}
+
+              <PaginationItem>
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="h-8 w-8 disabled:pointer-events-none disabled:opacity-50"
+                  onClick={() => table.nextPage()}
+                  disabled={!table.getCanNextPage()}
+                  aria-label="Go to next page"
+                >
+                  <ChevronRightIcon size={16} />
+                </Button>
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+
+        <div className="flex items-center space-x-2 flex-shrink-0">
+          <span className="text-xs text-muted-foreground">Số dòng:</span>
+          <Select
+            value={table.getState().pagination.pageSize.toString()}
+            onValueChange={(value) => {
+              table.setPageSize(Number(value));
+            }}
+          >
+            <SelectTrigger className="w-fit whitespace-nowrap h-8 text-xs px-2">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {[10, 15, 25, 50, 100].map((pageSizeOption) => (
+                <SelectItem
+                  key={pageSizeOption}
+                  value={pageSizeOption.toString()}
+                >
+                  {pageSizeOption}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
     </div>
   );
 };

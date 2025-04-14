@@ -237,6 +237,7 @@ function transformQueryResultToGridSchema(
 export async function getHistoryAction() {
   try {
     const records = await fetchDetectionHistory();
+    console.log("records", records);
 
     return {
       success: true,
