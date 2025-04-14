@@ -1,14 +1,12 @@
 import { betterAuth } from "better-auth";
-import { prismaAdapter } from "better-auth/adapters/prisma";
-import { PrismaClient } from "@prisma/client";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
 
 import { oneTap, multiSession } from "better-auth/plugins";
-
-const prisma = new PrismaClient();
+import { db } from "./db";
 
 export const auth = betterAuth({
-  database: prismaAdapter(prisma, {
-    provider: "postgresql",
+  database: drizzleAdapter(db, {
+    provider: "pg",
   }),
   emailAndPassword: {
     enabled: true,

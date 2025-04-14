@@ -1,4 +1,5 @@
-import { prisma } from "./prisma";
+import "dotenv/config";
+import { drizzle } from "drizzle-orm/node-postgres";
+import * as schema from "./schema";
 
-export { prisma };
-export * from "./utils";
+export const db = drizzle(process.env.DATABASE_URL!, { schema });

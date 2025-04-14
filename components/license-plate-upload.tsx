@@ -22,16 +22,14 @@ import {
   CheckCircle2,
   Link as LinkIcon,
   Info,
-  SaveIcon,
 } from "lucide-react";
 import {
   useLicensePlateStore,
   translateColor,
-} from "@/store/license-plate-store";
+} from "@/lib/store/license-plate-store";
 import {
   processLicensePlateImage,
   processLicensePlateFromUrl,
-  saveLicensePlateViaApi,
 } from "@/app/(main)/actions";
 
 type FileUploadTabProps = {
@@ -321,7 +319,6 @@ const DetectionDetails = ({
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {/* Hình ảnh */}
       <div>
         <Label className="text-base font-medium mb-2 block">
           Hình ảnh đã xử lý
@@ -337,7 +334,6 @@ const DetectionDetails = ({
         )}
       </div>
 
-      {/* Thông tin biển số */}
       <div>
         <Label className="text-base font-medium mb-2 block">
           Thông tin biển số
@@ -534,7 +530,6 @@ export function LicensePlateUpload() {
     setError(null);
 
     try {
-      // Simulate progress
       const progressInterval = setInterval(() => {
         setLoadingProgress((prev) => {
           const newProgress = prev + 5;
@@ -552,7 +547,6 @@ export function LicensePlateUpload() {
         }
       }, 500);
 
-      // Process image using the appropriate service function
       const data =
         inputMethod === "file"
           ? await processLicensePlateImage(selectedFile!)
@@ -562,76 +556,24 @@ export function LicensePlateUpload() {
       setLoadingProgress(100);
       setLoadingMessage("Hoàn tất!");
       setResult(data);
-      setSelectedDetection("main"); // Reset to main detection on new result
+      setSelectedDetection("main");
 
       if (data.error) {
-        toast.warning(data.error);
+        toast.warning(`Thông báo: ${data.error}`);
       } else {
-        toast.success("Biển số xe đã được xử lý và lưu thành công");
+        toast.success("Biển số xe đã được xử lý và lưu tự động.");
       }
     } catch (err) {
-      console.error("API Error:", err);
-
-      if (err instanceof Error) {
-        if (err.name === "AbortError") {
-          setError("Yêu cầu bị hủy do quá thời gian chờ. Vui lòng thử lại sau.");
-        } else if (
-          err.message.includes("Failed to fetch") ||
-          err.message.includes("Network Error")
-        ) {
-          setError(
-            "Không thể kết nối đến server API. Vui lòng kiểm tra kết nối mạng hoặc xác nhận rằng server đang hoạt động."
-          );
-        } else {
-          setError(`Lỗi: ${err.message}`);
-        }
-      } else {
-        setError("Lỗi không xác định khi gửi yêu cầu đến server");
-      }
-
-      toast.error("Không thể xử lý hình ảnh. Vui lòng thử lại sau.");
+      console.error("Processing Error:", err);
+      const errorMessage =
+        err instanceof Error ? err.message : "Lỗi không xác định khi xử lý ảnh.";
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSaveDetection = async () => {
-    if (!currentDetection || !result) return;
-
-    try {
-      const detection = result.detections.find((d, index) => {
-        const detectionKey = index === 0 ? "main" : index.toString();
-        return detectionKey === selectedDetection;
-      });
-
-      if (!detection) return;
-
-      const saveResult = await saveLicensePlateViaApi(
-        detection,
-        result.processed_image_url
-      );
-
-      if (saveResult.success === false) {
-        throw new Error(
-          saveResult.error || "Lỗi không xác định khi lưu biển số"
-        );
-      }
-
-      toast.success("Biển số đã được lưu vào cơ sở dữ liệu");
-    } catch (error) {
-      console.error("Error saving to database:", error);
-
-      // Hiển thị thông báo lỗi cụ thể nếu có
-      let errorMsg = "Không thể lưu biển số vào cơ sở dữ liệu";
-      if (error instanceof Error) {
-        errorMsg += `: ${error.message}`;
-      }
-
-      toast.error(errorMsg);
-    }
-  };
-
-  // Clean up preview URL when component unmounts
   useEffect(() => {
     return () => {
       if (previewUrl) {
@@ -642,7 +584,6 @@ export function LicensePlateUpload() {
 
   return (
     <div className="space-y-8">
-      {/* Phần Upload ảnh */}
       <Card className="overflow-hidden border-2 border-muted/30">
         <CardHeader className="bg-muted/20">
           <CardTitle className="text-xl">Nhận dạng biển số xe</CardTitle>
@@ -693,7 +634,6 @@ export function LicensePlateUpload() {
         </CardContent>
       </Card>
 
-      {/* Phần hiển thị kết quả */}
       {result?.detections && result.detections.length > 0 && (
         <Card className="border-2 border-muted/30">
           <CardHeader className="bg-muted/20">
@@ -707,19 +647,10 @@ export function LicensePlateUpload() {
                   </Badge>
                 )}
               </div>
-              <Button
-                size="sm"
-                onClick={handleSaveDetection}
-                className="flex items-center gap-1"
-              >
-                <SaveIcon size={16} />
-                Lưu kết quả
-              </Button>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Danh sách biển số (hiển thị nếu có nhiều biển số) */}
               {result.detections.length > 1 && (
                 <DetectionList
                   detections={result.detections}
@@ -728,7 +659,6 @@ export function LicensePlateUpload() {
                 />
               )}
 
-              {/* Chi tiết biển số đang chọn */}
               <div
                 className={
                   result.detections.length > 1
