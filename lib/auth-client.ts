@@ -5,14 +5,10 @@ export const authClient = createAuthClient({
   baseURL: process.env.NEXT_PUBLIC_APP_URL,
   plugins: [
     oneTapClient({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
       // Optional client configuration:
       autoSelect: false,
       cancelOnTapOutside: true,
-      context: "/",
-      additionalOptions: {
-        // Any extra options for the Google initialize method
-      },
       // Configure prompt behavior and exponential backoff:
       promptOptions: {
         baseDelay: 1000, // Base delay in ms (default: 1000)
