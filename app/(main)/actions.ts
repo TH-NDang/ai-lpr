@@ -15,6 +15,10 @@ import type {
   PaginationState,
 } from "@tanstack/react-table";
 
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000"; // Replace with your actual API URL
+
+// Standard processing endpoint (now uses YOLO + Paddle/Gemini)
 export async function processLicensePlateImage(
   file: File
 ): Promise<ApiResponse> {
@@ -26,15 +30,12 @@ export async function processLicensePlateImage(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/process-image`,
-      {
-        method: "POST",
-        body: formData,
-        signal: controller.signal,
-        mode: "cors",
-      }
-    ).finally(() => clearTimeout(timeoutId));
+    const response = await fetch(`${API_BASE_URL}/process-image`, {
+      method: "POST",
+      body: formData,
+      signal: controller.signal,
+      mode: "cors",
+    }).finally(() => clearTimeout(timeoutId));
 
     if (!response.ok) {
       let errorBody = null;
@@ -50,10 +51,7 @@ export async function processLicensePlateImage(
 
     apiResponseData = await response.json();
 
-    if (
-      apiResponseData?.detections &&
-      apiResponseData.detections.length > 0
-    ) {
+    if (apiResponseData?.detections && apiResponseData.detections.length > 0) {
       try {
         const createdDetection = await insertDetectionAndResults(
           apiResponseData,
@@ -110,6 +108,7 @@ export async function processLicensePlateImage(
   }
 }
 
+// Standard processing from URL (now uses YOLO + Paddle/Gemini)
 export async function processLicensePlateFromUrl(
   url: string
 ): Promise<ApiResponse> {
@@ -118,18 +117,15 @@ export async function processLicensePlateFromUrl(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000);
 
-    const response = await fetch(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/process-image-url`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ url }),
-        signal: controller.signal,
-        mode: "cors",
-      }
-    ).finally(() => clearTimeout(timeoutId));
+    const response = await fetch(`${API_BASE_URL}/process-image-url`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ url }),
+      signal: controller.signal,
+      mode: "cors",
+    }).finally(() => clearTimeout(timeoutId));
 
     if (!response.ok) {
       let errorBody = null;
@@ -145,10 +141,7 @@ export async function processLicensePlateFromUrl(
 
     apiResponseData = await response.json();
 
-    if (
-      apiResponseData?.detections &&
-      apiResponseData.detections.length > 0
-    ) {
+    if (apiResponseData?.detections && apiResponseData.detections.length > 0) {
       try {
         const createdDetection = await insertDetectionAndResults(
           apiResponseData,

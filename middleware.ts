@@ -8,7 +8,11 @@ export async function middleware(request: NextRequest) {
   const isLoggedIn = !!cookies;
   const isOnLogin = request.nextUrl.pathname.startsWith("/login");
 
-  const protectedRoutes = ["/dashboard", "/license-plate", "/history"];
+  const protectedRoutes = [
+    "/dashboard",
+    // "/license-plate",
+    // "/history"
+  ];
 
   // Redirect from auth pages to home if already logged in
   if (isLoggedIn && isOnLogin) {

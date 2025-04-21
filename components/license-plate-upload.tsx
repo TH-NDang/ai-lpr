@@ -32,449 +32,10 @@ import {
   processLicensePlateFromUrl,
 } from "@/app/(main)/actions";
 
-type FileUploadTabProps = {
-  previewUrl: string | null;
-  loading: boolean;
-  loadingMessage: string;
-  loadingProgress: number;
-  error: string | null;
-  result: any | null;
-  handleFileChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  handleUpload: () => Promise<void>;
-};
-
-type UrlInputTabProps = {
-  imageUrl: string;
-  loading: boolean;
-  loadingMessage: string;
-  loadingProgress: number;
-  error: string | null;
-  result: any | null;
-  setImageUrl: (url: string) => void;
-  setResult: (result: any | null) => void;
-  setError: (error: string | null) => void;
-  handleUpload: () => Promise<void>;
-};
-
-type ResultPreviewProps = {
-  processedImageUrl: string | null | undefined;
-  error: string | null;
-};
-
-type DetectionListProps = {
-  detections: any[];
-  selectedDetection: string;
-  setSelectedDetection: (detection: string) => void;
-};
-
-type DetectionDetailsProps = {
-  detection: any | null;
-  processedImageUrl: string | null | undefined;
-};
-
-const FileUploadTab = ({
-  previewUrl,
-  loading,
-  loadingMessage,
-  loadingProgress,
-  error,
-  result,
-  handleFileChange,
-  handleUpload,
-}: FileUploadTabProps) => (
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="image">Chọn file ảnh biển số</Label>
-        <div className="relative">
-          <Input
-            id="image"
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            className="pl-10"
-          />
-          <div className="absolute left-3 top-2.5 text-muted-foreground">
-            <Upload size={16} />
-          </div>
-        </div>
-      </div>
-      <div
-        onClick={() => document.getElementById("image")?.click()}
-        className={`relative border-2 border-dashed rounded-lg transition-colors cursor-pointer flex items-center justify-center min-h-[160px] ${
-          previewUrl
-            ? "border-primary/30 bg-primary/5"
-            : "border-muted-foreground/30 hover:border-muted-foreground/50 bg-muted/20 hover:bg-muted/30"
-        }`}
-      >
-        {previewUrl ? (
-          <div className="w-full h-full p-2">
-            <img
-              src={previewUrl}
-              alt="Preview"
-              className="mx-auto max-h-[240px] object-contain rounded"
-            />
-          </div>
-        ) : (
-          <div className="text-center p-6">
-            <Upload className="h-10 w-10 text-muted-foreground mb-2 mx-auto" />
-            <p className="text-sm text-muted-foreground">
-              Kéo thả ảnh hoặc click để chọn
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Hỗ trợ: JPG, PNG, JPEG
-            </p>
-          </div>
-        )}
-      </div>
-      <Button onClick={handleUpload} className="w-full" disabled={loading}>
-        {loading ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            {loadingMessage}
-          </>
-        ) : (
-          "Nhận dạng biển số"
-        )}
-      </Button>
-      {loading && (
-        <div className="mt-2">
-          <Progress value={loadingProgress} className="h-2" />
-        </div>
-      )}
-    </div>
-
-    <ResultPreview
-      processedImageUrl={result?.processed_image_url ?? undefined}
-      error={error}
-    />
-  </div>
-);
-
-const UrlInputTab = ({
-  imageUrl,
-  loading,
-  loadingMessage,
-  loadingProgress,
-  error,
-  result,
-  setImageUrl,
-  setResult,
-  setError,
-  handleUpload,
-}: UrlInputTabProps) => (
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="imageUrl">Nhập URL ảnh biển số</Label>
-        <div className="relative">
-          <Input
-            id="imageUrl"
-            type="url"
-            placeholder="https://example.com/image.jpg"
-            value={imageUrl}
-            onChange={(e) => {
-              setImageUrl(e.target.value);
-              setResult(null);
-              setError(null);
-            }}
-            className="pl-10"
-          />
-          <div className="absolute left-3 top-2.5 text-muted-foreground">
-            <LinkIcon size={16} />
-          </div>
-        </div>
-      </div>
-      {imageUrl && (
-        <div className="relative border-2 border-dashed rounded-lg transition-colors flex items-center justify-center min-h-[160px] border-primary/30 bg-primary/5">
-          <div className="w-full h-full p-2">
-            <img
-              src={imageUrl}
-              alt="Preview from URL"
-              className="mx-auto max-h-[240px] object-contain rounded"
-              onError={(e) => {
-                e.currentTarget.style.display = "none";
-                setError(
-                  "Không thể tải ảnh từ URL này. Vui lòng kiểm tra lại URL."
-                );
-              }}
-            />
-          </div>
-        </div>
-      )}
-      <Button onClick={handleUpload} className="w-full" disabled={loading}>
-        {loading ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            {loadingMessage}
-          </>
-        ) : (
-          "Nhận dạng biển số"
-        )}
-      </Button>
-      {loading && (
-        <div className="mt-2">
-          <Progress value={loadingProgress} className="h-2" />
-        </div>
-      )}
-    </div>
-
-    <ResultPreview
-      processedImageUrl={result?.processed_image_url ?? undefined}
-      error={error}
-    />
-  </div>
-);
-
-const ResultPreview = ({ processedImageUrl, error }: ResultPreviewProps) => {
-  if (processedImageUrl) {
-    return (
-      <div className="space-y-4">
-        <div>
-          <Label>Kết quả nhận dạng</Label>
-          <div className="mt-2 rounded-lg overflow-hidden border-2 border-primary/30 bg-primary/5">
-            <img
-              src={processedImageUrl}
-              alt="Kết quả nhận dạng"
-              className="w-full object-contain max-h-[300px]"
-            />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <Alert variant="destructive" className="max-w-md">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex items-center justify-center h-full">
-      <div className="text-center p-6 text-muted-foreground">
-        <img
-          src="/placeholder-license-plate.svg"
-          alt="License plate placeholder"
-          className="w-32 h-32 mx-auto mb-4 opacity-20"
-          onError={(e) => {
-            e.currentTarget.style.display = "none";
-          }}
-        />
-        <p>Vui lòng tải lên ảnh biển số để nhận dạng</p>
-      </div>
-    </div>
-  );
-};
-
-const DetectionList = ({
-  detections,
-  selectedDetection,
-  setSelectedDetection,
-}: DetectionListProps) => (
-  <div className="space-y-4">
-    <Label className="text-base font-medium">Danh sách biển số</Label>
-    <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
-      {detections.map((detection, index) => (
-        <div
-          key={index}
-          className={`p-3 rounded-md cursor-pointer transition-all ${
-            selectedDetection === (index === 0 ? "main" : index.toString())
-              ? "bg-primary text-primary-foreground"
-              : "bg-muted/30 hover:bg-muted/50"
-          }`}
-          onClick={() =>
-            setSelectedDetection(index === 0 ? "main" : index.toString())
-          }
-        >
-          <div className="flex justify-between items-center">
-            <span className="font-medium">{detection.plate_number}</span>
-            <Badge
-              variant={
-                selectedDetection === (index === 0 ? "main" : index.toString())
-                  ? "outline"
-                  : "secondary"
-              }
-              className="ml-2"
-            >
-              {(detection.confidence_detection * 100).toFixed(0)}%
-            </Badge>
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
-);
-
-const DetectionDetails = ({
-  detection,
-  processedImageUrl,
-}: DetectionDetailsProps) => {
-  if (!detection) return null;
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div>
-        <Label className="text-base font-medium mb-2 block">
-          Hình ảnh đã xử lý
-        </Label>
-        {processedImageUrl && (
-          <div className="rounded-lg overflow-hidden border border-muted">
-            <img
-              src={processedImageUrl}
-              alt="Ảnh đã xử lý"
-              className="w-full h-auto object-contain"
-            />
-          </div>
-        )}
-      </div>
-
-      <div>
-        <Label className="text-base font-medium mb-2 block">
-          Thông tin biển số
-        </Label>
-
-        <div className="mb-4">
-          <div className="flex items-center space-x-2 mb-2">
-            <Badge className="px-3 py-1.5 text-xl font-bold">
-              {detection.plate_number}
-            </Badge>
-            {detection.ocr_engine_used && (
-              <Badge variant="outline" className="text-xs">
-                OCR: {detection.ocr_engine_used}
-              </Badge>
-            )}
-          </div>
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-muted-foreground">Độ tin cậy:</span>
-            <Progress
-              value={detection.confidence_percent}
-              className="h-2 flex-1"
-            />
-            <span className="text-sm font-medium">
-              {detection.confidence_percent.toFixed(1)}%
-            </span>
-          </div>
-        </div>
-
-        {detection.plate_analysis && (
-          <div className="space-y-3 border rounded-md p-3 bg-muted/10">
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <span className="text-xs text-muted-foreground block">
-                  Tỉnh/TP
-                </span>
-                <span className="font-medium">
-                  {detection.plate_analysis.province_name || "N/A"}
-                </span>
-              </div>
-              <div>
-                <span className="text-xs text-muted-foreground block">
-                  Mã tỉnh
-                </span>
-                <span className="font-medium">
-                  {detection.plate_analysis.province_code || "N/A"}
-                </span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <span className="text-xs text-muted-foreground block">
-                  Loại biển
-                </span>
-                <span className="font-medium">
-                  {detection.plate_analysis.plate_type_info?.name ||
-                    "Không xác định"}
-                </span>
-              </div>
-              <div>
-                <span className="text-xs text-muted-foreground block">
-                  Màu biển
-                </span>
-                <span className="font-medium">
-                  {translateColor(detection.plate_analysis.detected_color)}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center">
-              <span className="text-xs text-muted-foreground mr-2">
-                Định dạng hợp lệ:
-              </span>
-              {detection.plate_analysis.is_valid_format ? (
-                <Badge
-                  variant="default"
-                  className="flex items-center gap-1 bg-green-500 text-white"
-                >
-                  <CheckCircle2 className="h-3 w-3" /> Hợp lệ
-                </Badge>
-              ) : (
-                <Badge variant="destructive" className="flex items-center gap-1">
-                  <AlertCircle className="h-3 w-3" /> Không hợp lệ
-                </Badge>
-              )}
-            </div>
-
-            {detection.plate_analysis.format_description && (
-              <div>
-                <span className="text-xs text-muted-foreground block">
-                  Mô tả:
-                </span>
-                <span className="text-sm">
-                  {detection.plate_analysis.format_description}
-                </span>
-              </div>
-            )}
-
-            <details className="text-sm">
-              <summary className="cursor-pointer text-primary font-medium flex items-center">
-                <Info className="h-3 w-3 mr-1" /> Thông tin chi tiết
-              </summary>
-              <div className="mt-2 pl-2 border-l-2 border-muted space-y-1">
-                <div>
-                  <span className="text-xs text-muted-foreground">
-                    Biển số gốc:
-                  </span>
-                  <span className="ml-1 font-mono">
-                    {detection.plate_analysis.original}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-xs text-muted-foreground">
-                    Biển số chuẩn hóa:
-                  </span>
-                  <span className="ml-1 font-mono">
-                    {detection.plate_analysis.normalized}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-xs text-muted-foreground">Seri:</span>
-                  <span className="ml-1">
-                    {detection.plate_analysis.serial || "N/A"}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-xs text-muted-foreground">
-                    Số đăng ký:
-                  </span>
-                  <span className="ml-1">
-                    {detection.plate_analysis.number || "N/A"}
-                  </span>
-                </div>
-              </div>
-            </details>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-};
+import { FileUploadTab } from "./lpr/file-upload-tab";
+import { UrlInputTab } from "./lpr/url-input-tab";
+import { DetectionList } from "./lpr/detection-list";
+import { DetectionDetails } from "./lpr/detection-details";
 
 export function LicensePlateUpload() {
   const {
@@ -525,32 +86,39 @@ export function LicensePlateUpload() {
     }
 
     setLoading(true);
-    setLoadingMessage("Đang kết nối đến server...");
+    setLoadingMessage(`Đang kết nối...`);
     setLoadingProgress(10);
     setError(null);
+    setResult(null);
 
     try {
       const progressInterval = setInterval(() => {
-        setLoadingProgress((prev) => {
-          const newProgress = prev + 5;
-          if (newProgress >= 90) {
+        setLoadingProgress((prev: number) => {
+          const newProgress = prev + Math.random() * 5 + 2;
+          if (newProgress >= 95) {
             clearInterval(progressInterval);
-            return 90;
+            return 95;
           }
           return newProgress;
         });
-
-        if (loadingProgress > 30 && loadingProgress < 60) {
-          setLoadingMessage("Đang xử lý hình ảnh...");
-        } else if (loadingProgress >= 60) {
-          setLoadingMessage("Đang phân tích biển số...");
+        const currentProgress = loadingProgress;
+        if (currentProgress < 30) {
+          setLoadingMessage(`Đang tải lên...`);
+        } else if (currentProgress < 70) {
+          setLoadingMessage(`Đang xử lý ảnh...`);
+        } else {
+          setLoadingMessage(`Đang phân tích...`);
         }
-      }, 500);
+      }, 300);
 
-      const data =
-        inputMethod === "file"
-          ? await processLicensePlateImage(selectedFile!)
-          : await processLicensePlateFromUrl(imageUrl);
+      let data;
+      if (inputMethod === "file") {
+        setLoadingMessage("Đang gửi yêu cầu xử lý...");
+        data = await processLicensePlateImage(selectedFile!);
+      } else {
+        setLoadingMessage("Đang gửi yêu cầu URL...");
+        data = await processLicensePlateFromUrl(imageUrl);
+      }
 
       clearInterval(progressInterval);
       setLoadingProgress(100);
@@ -559,9 +127,12 @@ export function LicensePlateUpload() {
       setSelectedDetection("main");
 
       if (data.error) {
-        toast.warning(`Thông báo: ${data.error}`);
+        toast.warning(`Thông báo từ API: ${data.error}`);
+        setError(data.error);
+      } else if (!data.detections || data.detections.length === 0) {
+        toast.info("Không phát hiện được biển số nào trong ảnh.");
       } else {
-        toast.success("Biển số xe đã được xử lý và lưu tự động.");
+        toast.success(`Xử lý thành công!`);
       }
     } catch (err) {
       console.error("Processing Error:", err);
@@ -569,6 +140,7 @@ export function LicensePlateUpload() {
         err instanceof Error ? err.message : "Lỗi không xác định khi xử lý ảnh.";
       setError(errorMessage);
       toast.error(errorMessage);
+      setLoadingProgress(0);
     } finally {
       setLoading(false);
     }
@@ -588,17 +160,16 @@ export function LicensePlateUpload() {
         <CardHeader className="bg-muted/20">
           <CardTitle className="text-xl">Nhận dạng biển số xe</CardTitle>
           <CardDescription>
-            Tải lên hình ảnh để nhận dạng và phân tích biển số xe
+            Tải lên hình ảnh hoặc nhập URL để nhận dạng và phân tích biển số xe
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <Tabs
-            defaultValue="file"
             value={inputMethod}
             onValueChange={(value) => setInputMethod(value as "file" | "url")}
-            className="mb-6"
+            className="w-full"
           >
-            <TabsList className="grid grid-cols-2 mb-4">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
               <TabsTrigger value="file">Tải lên ảnh</TabsTrigger>
               <TabsTrigger value="url">URL ảnh</TabsTrigger>
             </TabsList>
@@ -647,18 +218,24 @@ export function LicensePlateUpload() {
                   </Badge>
                 )}
               </div>
+              {result.processing_time_ms && (
+                <Badge variant="outline" className="text-xs font-normal">
+                  {`Time: ${result.processing_time_ms.toFixed(0)} ms`}
+                </Badge>
+              )}
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {result.detections.length > 1 && (
-                <DetectionList
-                  detections={result.detections}
-                  selectedDetection={selectedDetection}
-                  setSelectedDetection={setSelectedDetection}
-                />
+                <div className="md:col-span-1">
+                  <DetectionList
+                    detections={result.detections}
+                    selectedDetection={selectedDetection ?? "main"}
+                    setSelectedDetection={setSelectedDetection}
+                  />
+                </div>
               )}
-
               <div
                 className={
                   result.detections.length > 1

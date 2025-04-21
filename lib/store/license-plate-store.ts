@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { DetectionResult, ProcessImageResponse } from "@/lib/types"; // Assuming types are defined here
 
 export interface BackendPlateAnalysis {
   original: string;
@@ -38,107 +39,85 @@ export interface ProcessedDetection extends BackendDetection {
   processed_image_url: string | null;
 }
 
-interface LicensePlateState {
+// --- State Interface ---
+type LicensePlateState = {
   selectedFile: File | null;
   previewUrl: string | null;
-  imageUrl: string;
-  inputMethod: "file" | "url";
-
   loading: boolean;
   loadingMessage: string;
   loadingProgress: number;
-
-  result: ApiResponse | null;
+  result: ProcessImageResponse | null;
   error: string | null;
-  selectedDetection: string;
+  selectedDetection: string | null; // ID of the selected detection ('main' or index)
+  imageUrl: string; // For URL input
+  inputMethod: "file" | "url"; // 'file' or 'url'
+};
 
+// --- Actions Interface ---
+type LicensePlateActions = {
   setSelectedFile: (file: File | null) => void;
   setPreviewUrl: (url: string | null) => void;
-  setImageUrl: (url: string) => void;
-  setInputMethod: (method: "file" | "url") => void;
-  setLoading: (isLoading: boolean) => void;
+  setLoading: (loading: boolean) => void;
   setLoadingMessage: (message: string) => void;
   setLoadingProgress: (progress: number | ((prev: number) => number)) => void;
-  setResult: (result: ApiResponse | null) => void;
+  setResult: (result: ProcessImageResponse | null) => void;
   setError: (error: string | null) => void;
-  setSelectedDetection: (detection: string) => void;
+  setSelectedDetection: (id: string | null) => void;
+  setImageUrl: (url: string) => void;
+  setInputMethod: (method: "file" | "url") => void;
   reset: () => void;
+  getCurrentDetection: () => DetectionResult | undefined;
+};
 
-  getCurrentDetection: () => ProcessedDetection | null;
-}
-
-export const useLicensePlateStore = create<LicensePlateState>()((set, get) => ({
+// --- Initial State ---
+const initialState: LicensePlateState = {
   selectedFile: null,
   previewUrl: null,
-  imageUrl: "",
-  inputMethod: "file",
   loading: false,
-  loadingMessage: "Đang xử lý...",
+  loadingMessage: "",
   loadingProgress: 0,
   result: null,
   error: null,
-  selectedDetection: "main",
+  selectedDetection: null,
+  imageUrl: "",
+  inputMethod: "file",
+};
 
+// --- Store Definition ---
+export const useLicensePlateStore = create<
+  LicensePlateState & LicensePlateActions
+>((set, get) => ({
+  ...initialState,
+
+  // --- Setters ---
   setSelectedFile: (file) => set({ selectedFile: file }),
   setPreviewUrl: (url) => set({ previewUrl: url }),
-  setImageUrl: (url) => set({ imageUrl: url }),
-  setInputMethod: (method) => set({ inputMethod: method }),
-  setLoading: (isLoading) => set({ loading: isLoading }),
+  setLoading: (loading) => set({ loading }),
   setLoadingMessage: (message) => set({ loadingMessage: message }),
-  setLoadingProgress: (progress) =>
-    set((state) => ({
-      loadingProgress:
-        typeof progress === "function"
-          ? progress(state.loadingProgress)
-          : progress,
-    })),
+  setLoadingProgress: (progress) => set({ loadingProgress: progress }),
   setResult: (result) => set({ result }),
   setError: (error) => set({ error }),
-  setSelectedDetection: (detection) => set({ selectedDetection: detection }),
-  reset: () =>
-    set({
-      selectedFile: null,
-      previewUrl: null,
-      imageUrl: "",
-      result: null,
-      error: null,
-      loading: false,
-      loadingProgress: 0,
-      loadingMessage: "Đang xử lý...",
-      selectedDetection: "main",
-    }),
+  setSelectedDetection: (id) => set({ selectedDetection: id }),
+  setImageUrl: (url) => set({ imageUrl: url }),
+  setInputMethod: (method) => set({ inputMethod: method }),
 
+  // --- Reset Action ---
+  reset: () => set(initialState),
+
+  // --- Getter for selected detection details ---
   getCurrentDetection: () => {
     const { result, selectedDetection } = get();
-
-    if (!result || !result.detections || result.detections.length === 0) {
-      return null;
+    if (!result?.detections || selectedDetection === null) {
+      return undefined;
     }
-
-    let detection: BackendDetection | undefined;
-
     if (selectedDetection === "main") {
-      detection = result.detections[0];
-    } else {
-      const index = Number.parseInt(selectedDetection, 10);
-      if (
-        !Number.isNaN(index) &&
-        index >= 0 &&
-        index < result.detections.length
-      ) {
-        detection = result.detections[index];
-      } else {
-        detection = result.detections[0];
-      }
+      return result.detections[0]; // Return the first one if 'main' is selected
     }
-
-    if (!detection) return null;
-
-    return {
-      ...detection,
-      confidence_percent: detection.confidence_detection * 100,
-      processed_image_url: result.processed_image_url,
-    };
+    const index = parseInt(selectedDetection, 10);
+    if (!isNaN(index) && index >= 0 && index < result.detections.length) {
+      return result.detections[index];
+    }
+    return result.detections[0]; // Fallback to first detection
   },
 }));
 
