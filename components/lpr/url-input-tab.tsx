@@ -93,22 +93,33 @@ export function UrlInputTab({
             onBlur={loadImagePreview}
           />
         </div>
-        <Button onClick={loadImagePreview} variant="outline" disabled={previewLoading || !tempUrl}>
-          {previewLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <LinkIcon className="h-4 w-4" />} <span className="ml-2 hidden sm:inline">Tải Ảnh</span>
+        <Button
+          onClick={loadImagePreview}
+          variant="outline"
+          disabled={previewLoading || !tempUrl}
+        >
+          {previewLoading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <LinkIcon className="h-4 w-4" />
+          )}{" "}
+          <span className="ml-2 hidden sm:inline">Tải Ảnh</span>
         </Button>
       </div>
 
       <div className="mt-4 border rounded-lg p-4 flex justify-center items-center bg-muted/20 min-h-[200px]">
         {loading && loadingProgress < 100 ? (
-           <div className="text-center space-y-2">
-              <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">{loadingMessage}</p>
-              <Progress value={loadingProgress} className="w-full" />
-            </div>
+          <div className="text-center space-y-2">
+            <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground">{loadingMessage}</p>
+            <Progress value={loadingProgress} className="w-full" />
+          </div>
         ) : previewLoading ? (
           <div className="text-center space-y-2">
             <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Đang tải xem trước...</p>
+            <p className="text-sm text-muted-foreground">
+              Đang tải xem trước...
+            </p>
           </div>
         ) : previewError ? (
           <div className="text-center text-red-500">
@@ -116,29 +127,33 @@ export function UrlInputTab({
             <p>Lỗi tải ảnh: {previewError}</p>
           </div>
         ) : error && !result ? (
-            <div className="text-center text-red-500">
-              <AlertCircle className="mx-auto h-8 w-8 mb-2" />
-              <p>Lỗi xử lý: {error}</p>
-            </div>
-        ): result?.processed_image_url ? (
-            <img
-              src={result.processed_image_url}
-              alt="Processed preview"
-              className="max-w-full max-h-96 rounded-md object-contain"
-            />
-          )
-         : imageUrl ? (
+          <div className="text-center text-red-500">
+            <AlertCircle className="mx-auto h-8 w-8 mb-2" />
+            <p>Lỗi xử lý: {error}</p>
+          </div>
+        ) : result?.processed_image_url ? (
+          <img
+            src={result.processed_image_url}
+            alt="Processed preview"
+            className="max-w-full max-h-96 rounded-md object-contain"
+          />
+        ) : imageUrl ? (
           <img
             src={imageUrl}
             alt="URL preview"
             className="max-w-full max-h-96 rounded-md object-contain"
           />
         ) : (
-          <p className="text-muted-foreground">Nhập URL và nhấn "Tải Ảnh" để xem trước</p>
+          <p className="text-muted-foreground">
+            Nhập URL và nhấn &quot;Tải Ảnh&quot; để xem trước
+          </p>
         )}
       </div>
 
-      <Button onClick={handleUpload} disabled={loading || !imageUrl || previewError !== null}>
+      <Button
+        onClick={handleUpload}
+        disabled={loading || !imageUrl || previewError !== null}
+      >
         {loading ? (
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
         ) : (
