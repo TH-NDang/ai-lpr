@@ -2,7 +2,6 @@
   "name": "ai-lpr",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "bun@1.2.9",
   "scripts": {
     "dev": "next dev  --turbopack",
     "build": "next build",
@@ -94,6 +93,7 @@
     "react-dom": "^19.1.0",
     "react-markdown": "^10.1.0",
     "react-resizable-panels": "^2.1.7",
+    "react-zoom-pan-pinch": "^3.7.0",
     "recharts": "^2.15.1",
     "remark-gfm": "^4.0.1",
     "server-only": "^0.0.1",

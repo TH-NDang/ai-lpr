@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useId, useEffect } from "react";
+import React, { useState, useMemo, useId, useEffect, Suspense } from "react";
 import {
   type ColumnDef,
   type ColumnFiltersState,
@@ -13,6 +13,7 @@ import {
   type Table as ReactTable,
   type RowData,
   type VisibilityState,
+  type Row,
 } from "@tanstack/react-table";
 import {
   Table,
@@ -37,13 +38,15 @@ import {
   AlertCircle,
   ChevronDownIcon,
   ChevronUpIcon,
-  SearchIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   Columns3Icon,
-  ZoomInIcon,
+  ZoomInIcon as ZoomInIconTrigger,
   RotateCcw,
   XIcon,
+  Filter as FilterIcon,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 import {
   Pagination,
@@ -51,15 +54,8 @@ import {
   PaginationEllipsis,
   PaginationItem,
 } from "@/components/ui/pagination";
-import { usePagination } from "@/hooks/use-pagination";
 import { cn } from "@/lib/utils";
-import { getHistoryAction, getHistoryFilterOptions } from "../actions";
-import {
-  Dialog,
-  DialogContent,
-  DialogTrigger,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { CalendarIcon } from "lucide-react";
 import {
   format,
@@ -73,7 +69,7 @@ import {
 } from "date-fns";
 import { type DateRange } from "react-day-picker";
 import type { HistoryQueryResultItem } from "@/lib/db/queries";
-import { useQueryStates, parseAsInteger, parseAsJson } from "nuqs";
+import { useQueryStates, parseAsJson } from "nuqs";
 import { useQuery } from "@tanstack/react-query";
 import {
   DropdownMenu,
@@ -90,6 +86,19 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useDebounce } from "use-debounce";
+import { SidebarToggle } from "@/components/sidebar-toggle";
+import { Separator } from "@/components/ui/separator";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetFooter,
+  SheetClose,
+} from "@/components/ui/sheet";
+import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type HistoryGridRow = HistoryQueryResultItem;
 
@@ -254,89 +263,73 @@ function Filter({
   table: ReactTable<HistoryGridRow>;
 }) {
   const id = useId();
+  const firstValue = table
+    .getPreFilteredRowModel()
+    .flatRows[0]?.getValue(column.id);
+  const filterVariant = column.columnDef.meta?.filterVariant;
+
   const columnFilterValue = column.getFilterValue();
 
-  const isTextFilter =
-    column.columnDef.meta?.filterVariant === "text" ||
-    !column.columnDef.meta?.filterVariant;
-  const [inputValue, setInputValue] = useState<string>(() =>
-    isTextFilter ? (columnFilterValue as string) ?? "" : ""
-  );
-  const [debouncedInputValue] = useDebounce(inputValue, 300);
-
-  // Effect to apply the debounced value to the column filter
-  useEffect(() => {
-    if (isTextFilter && debouncedInputValue !== (columnFilterValue ?? "")) {
-      column.setFilterValue(debouncedInputValue);
+  const sortedUniqueValues = React.useMemo(() => {
+    if (filterVariant === "range" || typeof firstValue === "number") {
+      return [];
     }
-  }, [debouncedInputValue, columnFilterValue, column, isTextFilter]);
-
-  useEffect(() => {
-    if (
-      isTextFilter &&
-      (columnFilterValue === undefined ||
-        columnFilterValue === null ||
-        columnFilterValue === "")
-    ) {
-      if (inputValue !== "") {
-        setInputValue("");
-      }
+    const rows = table.getPreFilteredRowModel().flatRows;
+    if (!Array.isArray(rows)) {
+      return [];
     }
-  }, [columnFilterValue, isTextFilter, inputValue]);
-
-  const { filterVariant, selectOptions } = column.columnDef.meta ?? {};
-  const columnHeader = React.isValidElement(column.columnDef.header)
-    ? column.id
-    : String(column.columnDef.header ?? "");
-
-  const sortedUniqueValues = useMemo(() => {
-    if (filterVariant === "selectBoolean") return ["true", "false"];
-    if (filterVariant === "selectString") {
-      if (selectOptions) return [...selectOptions].sort();
-
-      const uniqueValues = Array.from(
-        column.getFacetedUniqueValues().keys()
-      ).filter(
-        (value): value is string => value !== null && value !== undefined
-      );
-      return uniqueValues.sort();
-    }
-    return [];
-  }, [column.getFacetedUniqueValues, filterVariant, selectOptions]);
+    const uniqueValues = Array.from(
+      rows
+        .map((row: Row<HistoryGridRow>) => row.getValue(column.id))
+        .reduce(
+          (acc: Set<unknown>, value: unknown) => acc.add(value),
+          new Set<unknown>()
+        )
+    );
+    return uniqueValues.filter((v) => v !== null && v !== undefined).sort();
+  }, [
+    table.getPreFilteredRowModel().flatRows,
+    column.id,
+    filterVariant,
+    firstValue,
+  ]);
 
   if (filterVariant === "range") {
-    const [min, max] = column.getFacetedMinMaxValues() ?? ["", ""];
+    const [min, max] = (columnFilterValue ?? ["", ""]) as [string, string];
     return (
-      <div className="*:not-first:mt-1 space-y-1">
-        <Label htmlFor={`${id}-range-1`}>{columnHeader}</Label>
-        <div className="flex gap-1">
+      <div className="*:not-first:mt-1">
+        <Label htmlFor={id} className="text-xs font-normal">
+          {String(column.columnDef.header ?? column.id)}
+        </Label>
+        <div className="flex items-center space-x-1">
           <Input
-            id={`${id}-range-1`}
-            className="flex-1 rounded-e-none h-8 text-xs [-moz-appearance:_textfield] focus:z-10 [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none"
-            value={(columnFilterValue as [number, number])?.[0] ?? ""}
+            id={id}
+            type="number"
+            min={Number(column.getFacetedMinMaxValues()?.[0] ?? "")}
+            max={Number(column.getFacetedMinMaxValues()?.[1] ?? "")}
+            value={min}
             onChange={(e) =>
-              column.setFilterValue((old: [number, number]) => [
-                e.target.value ? Number(e.target.value) : undefined,
+              column.setFilterValue((old: [string, string]) => [
+                e.target.value,
                 old?.[1],
               ])
             }
-            placeholder={`Min ${min ? `(${min})` : ""}`}
-            type="number"
-            aria-label={`${columnHeader} min`}
+            placeholder={`Min`}
+            className="h-8 px-1.5 text-xs border-r-0 rounded-r-none focus-visible:ring-offset-0 focus-visible:ring-0"
           />
           <Input
-            id={`${id}-range-2`}
-            className="-ms-px flex-1 rounded-s-none h-8 text-xs [-moz-appearance:_textfield] focus:z-10 [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none"
-            value={(columnFilterValue as [number, number])?.[1] ?? ""}
+            type="number"
+            min={Number(column.getFacetedMinMaxValues()?.[0] ?? "")}
+            max={Number(column.getFacetedMinMaxValues()?.[1] ?? "")}
+            value={max}
             onChange={(e) =>
-              column.setFilterValue((old: [number, number]) => [
+              column.setFilterValue((old: [string, string]) => [
                 old?.[0],
-                e.target.value ? Number(e.target.value) : undefined,
+                e.target.value,
               ])
             }
-            placeholder={`Max ${max ? `(${max})` : ""}`}
-            type="number"
-            aria-label={`${columnHeader} max`}
+            placeholder={`Max`}
+            className="h-8 px-1.5 text-xs rounded-l-none focus-visible:ring-offset-0 focus-visible:ring-0"
           />
         </div>
       </div>
@@ -345,23 +338,22 @@ function Filter({
 
   if (filterVariant === "selectBoolean") {
     return (
-      <div className="*:not-first:mt-1 space-y-1">
-        <Label htmlFor={`${id}-select`}>{columnHeader}</Label>
+      <div className="*:not-first:mt-1">
+        <Label htmlFor={id} className="text-xs font-normal">
+          {String(column.columnDef.header ?? column.id)}
+        </Label>
         <Select
-          value={columnFilterValue?.toString() ?? "all"}
-          onValueChange={(value) => {
-            column.setFilterValue(
-              value === "all" ? undefined : value === "true"
-            );
-          }}
+          value={(columnFilterValue ?? "").toString()}
+          onValueChange={(value) =>
+            column.setFilterValue(value === "" ? undefined : value === "true")
+          }
         >
-          <SelectTrigger id={`${id}-select`} className="h-8 text-xs">
-            <SelectValue placeholder="Chọn..." />
+          <SelectTrigger className="h-8 text-xs px-2">
+            <SelectValue placeholder="Tất cả" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tất cả</SelectItem>
-            <SelectItem value="true">Hợp lệ</SelectItem>
-            <SelectItem value="false">Không hợp lệ</SelectItem>
+            <SelectItem value="true">True</SelectItem>
+            <SelectItem value="false">False</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -369,23 +361,28 @@ function Filter({
   }
 
   if (filterVariant === "selectString") {
+    const validOptions = (
+      column.columnDef.meta?.selectOptions ?? sortedUniqueValues
+    ).filter((opt) => opt !== "");
+
     return (
-      <div className="*:not-first:mt-1 space-y-1">
-        <Label htmlFor={`${id}-select-str`}>{columnHeader}</Label>
+      <div className="*:not-first:mt-1">
+        <Label htmlFor={id} className="text-xs font-normal">
+          {String(column.columnDef.header ?? column.id)}
+        </Label>
         <Select
-          value={(columnFilterValue ?? "all") as string}
+          value={(columnFilterValue ?? "").toString()}
           onValueChange={(value) =>
-            column.setFilterValue(value === "all" ? undefined : value)
+            column.setFilterValue(value === "" ? undefined : value)
           }
         >
-          <SelectTrigger id={`${id}-select-str`} className="h-8 text-xs">
-            <SelectValue placeholder="Chọn..." />
+          <SelectTrigger className="h-8 text-xs px-2">
+            <SelectValue placeholder="Tất cả" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Tất cả</SelectItem>
-            {sortedUniqueValues.map((value) => (
-              <SelectItem key={value} value={value}>
-                {value}
+            {validOptions.map((value: any, index: number) => (
+              <SelectItem key={`${value}-${index}`} value={value.toString()}>
+                {String(value)}
               </SelectItem>
             ))}
           </SelectContent>
@@ -398,73 +395,130 @@ function Filter({
     return <DayPickerDateRangeFilter column={column} />;
   }
 
-  const isDateFilter = column.id === "date";
+  // Default: text filter
   return (
-    <div className="*:not-first:mt-1 space-y-1">
-      <Label htmlFor={`${id}-input`} className="text-xs font-normal">
-        {columnHeader}
+    <div className="*:not-first:mt-1">
+      <Label htmlFor={id} className="text-xs font-normal">
+        {String(column.columnDef.header ?? column.id)}
       </Label>
-      <div className="relative">
-        <Input
-          id={`${id}-input`}
-          className="peer ps-8 h-8 text-xs"
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          placeholder={
-            isDateFilter ? "Tìm ngày/giờ..." : `Tìm ${columnHeader}...`
-          }
-          type="text"
-        />
-        <div className="text-muted-foreground/80 pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-2.5 peer-disabled:opacity-50">
-          <SearchIcon size={14} />
-        </div>
-      </div>
+      <Input
+        id={id}
+        type="text"
+        value={(columnFilterValue ?? "") as string}
+        onChange={(e) => column.setFilterValue(e.target.value)}
+        placeholder={`Tìm kiếm...`}
+        className="h-8 px-2 text-xs"
+      />
     </div>
   );
 }
 
 const booleanCellRenderer = (value: boolean | null | undefined) => {
-  if (value === true) {
-    return <CheckCircle2 className="text-green-500 mx-auto" size={16} />;
-  } else if (value === false) {
-    return <AlertCircle className="text-red-500 mx-auto" size={16} />;
+  if (value === null || value === undefined) {
+    return <span className="text-muted-foreground text-xs">N/A</span>;
   }
-  return null;
+  return value ? (
+    <CheckCircle2 className="h-4 w-4 text-green-500 inline-block" />
+  ) : (
+    <AlertCircle className="h-4 w-4 text-destructive inline-block" />
+  );
 };
 
 const imageCellRenderer = (value?: string | null) => {
-  if (!value) return null;
-
+  if (!value) return <span className="text-muted-foreground text-xs">N/A</span>;
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <div className="relative group mx-auto w-fit h-[30px] cursor-pointer rounded-sm overflow-hidden">
-          <img
-            src={value}
-            alt="Processed plate thumbnail"
-            className="h-full object-contain transition-opacity"
-            loading="lazy"
-            onError={(e) => (e.currentTarget.style.display = "none")}
-          />
-          <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-            <ZoomInIcon className="h-4 w-4 text-white" />
-          </div>
-        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 w-6 p-0 hover:bg-transparent"
+        >
+          <ZoomInIconTrigger className="h-4 w-4 text-muted-foreground hover:text-primary" />
+        </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-xl p-2 sm:max-w-2xl md:max-w-3xl lg:max-w-4xl">
-        <DialogTitle className="sr-only">Ảnh biển số phóng to</DialogTitle>
-        <img
-          src={value}
-          alt="Ảnh biển số phóng to"
-          className="w-full h-auto object-contain rounded-md max-h-[85vh]"
-        />
+      <DialogContent className="max-w-xs sm:max-w-2xl md:max-w-4xl lg:max-w-6xl xl:max-w-[90vw] h-[85vh] flex items-center justify-center p-0 overflow-hidden">
+        <TransformWrapper
+          initialScale={1}
+          minScale={0.5}
+          maxScale={10}
+          limitToBounds={true}
+          doubleClick={{ mode: "reset" }}
+        >
+          {({ zoomIn, zoomOut, resetTransform, ...rest }) => (
+            <React.Fragment>
+              <div className="absolute top-2 right-2 z-10 flex flex-col items-end space-y-1">
+                <SheetClose asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8 bg-background/70 hover:bg-background/90"
+                    aria-label="Đóng"
+                  >
+                    <XIcon className="h-4 w-4" />
+                  </Button>
+                </SheetClose>
+
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => zoomIn()}
+                  className="h-8 w-8 bg-background/70 hover:bg-background/90"
+                  aria-label="Phóng to"
+                >
+                  <ZoomIn className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => zoomOut()}
+                  className="h-8 w-8 bg-background/70 hover:bg-background/90"
+                  aria-label="Thu nhỏ"
+                >
+                  <ZoomOut className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => resetTransform()}
+                  className="h-8 w-8 bg-background/70 hover:bg-background/90"
+                  aria-label="Reset"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+              </div>
+
+              <TransformComponent
+                wrapperStyle={{ width: "100%", height: "100%" }}
+                contentStyle={{
+                  width: "100%",
+                  height: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <img
+                  src={value}
+                  alt="Detection"
+                  className="max-w-full max-h-full object-contain mx-auto cursor-grab active:cursor-grabbing"
+                />
+              </TransformComponent>
+            </React.Fragment>
+          )}
+        </TransformWrapper>
       </DialogContent>
     </Dialog>
   );
 };
 
 const dateFormatter = (value: Date | null): string => {
-  return value ? new Date(value).toLocaleString("vi-VN") : "";
+  if (!value) return "-";
+  try {
+    return format(new Date(value), "HH:mm:ss dd/MM/yyyy");
+  } catch {
+    return "Invalid Date";
+  }
 };
 
 const getColumns = (
@@ -536,14 +590,6 @@ const getColumns = (
     enableHiding: true,
   },
   {
-    accessorKey: "processTime",
-    header: "Thời gian xử lý",
-    accessorFn: (originalRow) => originalRow.detection?.processTimeMs,
-    cell: ({ row }) => row.original.detection?.processTimeMs ?? "-",
-    size: 80,
-    enableHiding: true,
-  },
-  {
     accessorKey: "imageUrl",
     header: "Ảnh",
     accessorFn: (originalRow) => originalRow.detection?.processedImageUrl,
@@ -557,159 +603,378 @@ const getColumns = (
   },
 ];
 
-const HistoryPage: React.FC = () => {
-  const [queryStates, setQueryStates] = useQueryStates({
-    page: parseAsInteger.withDefault(1),
-    size: parseAsInteger.withDefault(15),
-    sort: parseAsJson((v) => v as SortingState).withDefault([]),
-    filters: parseAsJson((v) => v as ColumnFiltersState).withDefault([]),
-    visibility: parseAsJson((v) => v as VisibilityState).withDefault({}),
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:6000";
+
+interface ApiHistoryResponse {
+  rows: HistoryQueryResultItem[];
+  totalRowCount: number;
+}
+
+interface ApiFilterOptionsResponse {
+  ocrEngines: string[];
+  vehicleTypes: string[];
+  sources: string[];
+}
+
+const HistoryPageContent: React.FC = () => {
+  const defaultPagination: PaginationState = { pageIndex: 0, pageSize: 10 };
+  const defaultSorting: SortingState = [{ id: "date", desc: true }];
+  const defaultFilters: ColumnFiltersState = [];
+
+  const [queryState, setQueryState] = useQueryStates({
+    filters: parseAsJson<ColumnFiltersState>(
+      (v) => v as ColumnFiltersState
+    ).withDefault(defaultFilters),
+    sorting: parseAsJson<SortingState>((v) => v as SortingState).withDefault(
+      defaultSorting
+    ),
+    pagination: parseAsJson<PaginationState>(
+      (v) => v as PaginationState
+    ).withDefault(defaultPagination),
   });
 
-  const pagination: PaginationState = useMemo(
-    () => ({
-      pageIndex: queryStates.page - 1,
-      pageSize: queryStates.size,
-    }),
-    [queryStates.page, queryStates.size]
-  );
-  const sorting = queryStates.sort;
-  const columnFilters = queryStates.filters;
-  const columnVisibility = queryStates.visibility;
+  const filters = queryState.filters ?? defaultFilters;
+  const sorting = queryState.sorting ?? defaultSorting;
+  const pagination = queryState.pagination ?? defaultPagination;
 
-  const historyQuery = useQuery({
-    queryKey: ["history", pagination, sorting, columnFilters],
-    queryFn: () =>
-      getHistoryAction({
-        pagination: {
-          pageIndex: queryStates.page - 1,
-          pageSize: queryStates.size,
-        },
-        sorting: queryStates.sort,
-        filters: queryStates.filters,
-      }),
-  });
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
 
-  const filterOptionsQuery = useQuery<FilterOptions>({
-    queryKey: ["historyFilterOptions"],
-    queryFn: getHistoryFilterOptions,
-    staleTime: Number.POSITIVE_INFINITY,
-  });
+  const [debouncedFilters] = useDebounce(filters, 300);
 
-  const {
-    data: historyData,
-    isLoading: isLoadingHistory,
-    isError: isErrorHistory,
-    error: historyError,
-    isFetching,
-  } = historyQuery;
-  const { data: filterOptions } = filterOptionsQuery;
-
-  const memoizedData = useMemo(() => historyData?.rows ?? [], [historyData]);
-  const totalRowCount = historyData?.totalRowCount ?? 0;
-
-  const pageCount = Math.ceil(totalRowCount / pagination.pageSize);
+  const { data: filterOptions, isLoading: isLoadingOptions } =
+    useQuery<ApiFilterOptionsResponse>({
+      queryKey: ["historyFilterOptions"],
+      queryFn: async () => {
+        const response = await fetch(`${API_BASE_URL}/history/options`);
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("Filter Options API Error:", response.status, errorText);
+          throw new Error(
+            `Failed to fetch filter options: ${response.statusText}`
+          );
+        }
+        return response.json();
+      },
+      staleTime: Infinity,
+      refetchOnWindowFocus: false,
+    });
 
   const columns = useMemo(() => getColumns(filterOptions), [filterOptions]);
 
+  const { data, isLoading, isError, error, refetch, isFetching } =
+    useQuery<ApiHistoryResponse>({
+      queryKey: ["historyData", debouncedFilters, sorting, pagination],
+      queryFn: async () => {
+        console.log("Fetching history data from API with params:", {
+          pagination,
+          sorting,
+          filters: debouncedFilters,
+        });
+
+        const params = new URLSearchParams();
+        params.set("pageIndex", pagination.pageIndex.toString());
+        params.set("pageSize", pagination.pageSize.toString());
+
+        if (sorting.length > 0) {
+          params.set("sortId", sorting[0].id);
+          params.set("sortDesc", sorting[0].desc.toString());
+        }
+
+        debouncedFilters.forEach((filter) => {
+          const filterValue = filter.value;
+          const filterId = filter.id;
+
+          if (
+            filterId === "date" &&
+            typeof filterValue === "object" &&
+            filterValue !== null
+          ) {
+            const range = filterValue as { from?: Date; to?: Date };
+            if (range.from instanceof Date && !isNaN(range.from.getTime()))
+              params.set("dateFrom", range.from.toISOString().split("T")[0]);
+            if (range.to instanceof Date && !isNaN(range.to.getTime()))
+              params.set("dateTo", range.to.toISOString().split("T")[0]);
+          } else if (
+            filterId === "confidenceDetection" &&
+            Array.isArray(filterValue)
+          ) {
+            if (filterValue[0] !== undefined && filterValue[0] !== null)
+              params.set("confidenceMin", filterValue[0].toString());
+            if (filterValue[1] !== undefined && filterValue[1] !== null)
+              params.set("confidenceMax", filterValue[1].toString());
+          } else if (filterId === "processTime" && Array.isArray(filterValue)) {
+            if (filterValue[0] !== undefined && filterValue[0] !== null)
+              params.set("processTimeMin", filterValue[0].toString());
+            if (filterValue[1] !== undefined && filterValue[1] !== null)
+              params.set("processTimeMax", filterValue[1].toString());
+          } else if (filterValue !== undefined && filterValue !== null) {
+            params.set(filterId, String(filterValue));
+          }
+        });
+
+        const response = await fetch(
+          `${API_BASE_URL}/history?${params.toString()}`
+        );
+
+        if (!response.ok) {
+          let errorDetails = "Unknown API error";
+          try {
+            const errData = await response.json();
+            errorDetails =
+              errData?.error || errData?.details || response.statusText;
+          } catch (e) {
+            /* ignore */
+          }
+          console.error("API Error Details:", errorDetails);
+          throw new Error(`Failed to fetch history data: ${errorDetails}`);
+        }
+        return response.json();
+      },
+      placeholderData: (previousData) => previousData,
+      refetchOnWindowFocus: true,
+    });
+
   const table = useReactTable({
-    data: memoizedData,
+    data: data?.rows ?? [],
     columns,
+    pageCount: data ? Math.ceil(data.totalRowCount / pagination.pageSize) : -1,
+    state: {
+      columnFilters: filters,
+      sorting: sorting,
+      pagination: pagination,
+      columnVisibility,
+    },
+    onColumnFiltersChange: (updater) =>
+      setQueryState({
+        filters: typeof updater === "function" ? updater(filters) : updater,
+      }),
+    onSortingChange: (updater) =>
+      setQueryState({
+        sorting: typeof updater === "function" ? updater(sorting) : updater,
+      }),
+    onPaginationChange: (updater) =>
+      setQueryState({
+        pagination:
+          typeof updater === "function" ? updater(pagination) : updater,
+      }),
+    onColumnVisibilityChange: setColumnVisibility,
+    getCoreRowModel: getCoreRowModel(),
     manualPagination: true,
     manualSorting: true,
     manualFiltering: true,
-    pageCount: pageCount,
-    state: {
-      sorting,
-      columnFilters,
-      pagination,
-      columnVisibility,
-    },
-    onColumnFiltersChange: (updater) => {
-      const newState =
-        typeof updater === "function" ? updater(queryStates.filters) : updater;
-      setQueryStates({ filters: newState, page: 1 });
-    },
-    onSortingChange: (updater) => {
-      const newState =
-        typeof updater === "function" ? updater(queryStates.sort) : updater;
-      setQueryStates({ sort: newState });
-    },
-    onPaginationChange: (updater) => {
-      const newState =
-        typeof updater === "function"
-          ? updater({
-              pageIndex: queryStates.page - 1,
-              pageSize: queryStates.size,
-            })
-          : updater;
-      setQueryStates({ page: newState.pageIndex + 1, size: newState.pageSize });
-    },
-    onColumnVisibilityChange: (updater) => {
-      const newState =
-        typeof updater === "function"
-          ? updater(queryStates.visibility)
-          : updater;
-      setQueryStates({ visibility: newState });
-    },
-    getCoreRowModel: getCoreRowModel(),
-    columnResizeMode: "onChange",
-    meta: {},
+    debugTable: process.env.NODE_ENV === "development",
   });
 
-  const { pages, showLeftEllipsis, showRightEllipsis } = usePagination({
-    currentPage: queryStates.page,
-    totalPages: pageCount,
-    paginationItemsToDisplay: 5,
-  });
+  const pageCount = table.getPageCount();
+  const currentPage = pagination.pageIndex + 1;
+
+  const renderPaginationControls = () => {
+    const pageNumbers: (number | string)[] = [];
+    const maxPagesToShow = 5;
+    const ellipsis = "...";
+
+    if (pageCount <= maxPagesToShow + 2) {
+      for (let i = 1; i <= pageCount; i++) {
+        pageNumbers.push(i);
+      }
+    } else {
+      pageNumbers.push(1);
+      const startPage = Math.max(
+        2,
+        currentPage - Math.floor((maxPagesToShow - 2) / 2)
+      );
+      const endPage = Math.min(pageCount - 1, startPage + maxPagesToShow - 3);
+
+      if (startPage > 2) {
+        pageNumbers.push(ellipsis);
+      }
+
+      for (let i = startPage; i <= endPage; i++) {
+        pageNumbers.push(i);
+      }
+
+      if (endPage < pageCount - 1) {
+        pageNumbers.push(ellipsis);
+      }
+
+      pageNumbers.push(pageCount);
+    }
+
+    return (
+      <div className="flex items-center justify-between gap-2 flex-wrap mt-4 px-1">
+        <div className="flex items-center gap-2">
+          <Select
+            value={table.getState().pagination.pageSize.toString()}
+            onValueChange={(value) => {
+              table.setPageSize(Number(value));
+            }}
+          >
+            <SelectTrigger className="h-8 w-[75px] text-xs">
+              <SelectValue placeholder={table.getState().pagination.pageSize} />
+            </SelectTrigger>
+            <SelectContent side="top">
+              {[10, 20, 30, 40, 50].map((size) => (
+                <SelectItem key={size} value={size.toString()}>
+                  {size} / trang
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-sm font-medium text-muted-foreground">
+            {`${table.getRowModel().rows.length} / ${
+              data?.totalRowCount ?? 0
+            } dòng (Trang ${currentPage} / ${pageCount})`}
+          </p>
+        </div>
+        <Pagination className="w-auto mx-0">
+          <PaginationContent>
+            <PaginationItem>
+              <Button
+                variant="outline"
+                className="h-8 w-8 p-0"
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+                aria-label="Trang trước"
+              >
+                <ChevronLeftIcon className="h-4 w-4" />
+              </Button>
+            </PaginationItem>
+            {pageNumbers.map((pageNumber, index) => (
+              <PaginationItem key={`${pageNumber}-${index}`}>
+                {pageNumber === ellipsis ? (
+                  <PaginationEllipsis />
+                ) : (
+                  <Button
+                    variant={currentPage === pageNumber ? "outline" : "ghost"}
+                    className="h-8 w-8 p-0"
+                    onClick={() =>
+                      table.setPageIndex((pageNumber as number) - 1)
+                    }
+                    disabled={isFetching}
+                  >
+                    {pageNumber}
+                  </Button>
+                )}
+              </PaginationItem>
+            ))}
+            <PaginationItem>
+              <Button
+                variant="outline"
+                className="h-8 w-8 p-0"
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+                aria-label="Trang sau"
+              >
+                <ChevronRightIcon className="h-4 w-4" />
+              </Button>
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      </div>
+    );
+  };
+
+  useEffect(() => {
+    const filtersChanged =
+      JSON.stringify(filters) !== JSON.stringify(defaultFilters);
+    const sortingChanged =
+      JSON.stringify(sorting) !== JSON.stringify(defaultSorting);
+
+    if ((filtersChanged || sortingChanged) && pagination.pageIndex !== 0) {
+      console.log("Resetting page index due to filter/sort change");
+      setQueryState({ pagination: { ...pagination, pageIndex: 0 } });
+    }
+  }, [JSON.stringify(filters), JSON.stringify(sorting)]);
+
+  // Function to render filters, either inline or inside the sheet
+  const renderFilters = () => (
+    <div className="flex flex-col gap-3 p-4 md:p-0 md:flex-row md:flex-wrap md:items-center md:gap-2">
+      {table
+        .getHeaderGroups()[0]
+        .headers.filter(
+          (header) =>
+            header.column.getCanFilter() && header.column.getIsVisible()
+        )
+        .map((header) => (
+          <div
+            key={header.id}
+            className="flex-shrink-0 w-full md:min-w-[120px] md:w-auto"
+          >
+            <Filter column={header.column} table={table} />
+          </div>
+        ))}
+    </div>
+  );
+
+  // Function to reset filters
+  const resetFiltersAndSorting = () => {
+    setQueryState({
+      filters: defaultFilters,
+      sorting: defaultSorting,
+      // Keep pagination or reset it?
+      // pagination: defaultPagination, // Uncomment to reset pagination too
+    });
+  };
 
   return (
-    <div className="space-y-4 p-4 lg:p-6">
-      <div className="flex flex-wrap gap-3 items-end justify-between">
-        <div className="flex flex-wrap gap-3 items-end">
-          {table
-            .getHeaderGroups()[0]
-            .headers.filter((header) => header.column.getCanFilter())
-            .map((header) => (
-              <div
-                key={header.id}
-                className="flex-shrink-0"
-                style={{ width: `${header.column.columnDef.size ?? 120}px` }}
+    <div className="container mx-auto py-4 md:px-4 lg:px-6">
+      <div className="flex items-center space-x-4 h-8 mb-4">
+        <SidebarToggle />
+        <Separator orientation="vertical" className="h-full" />
+        <h1 className="text-2xl font-bold whitespace-nowrap">
+          Lịch sử nhận dạng
+        </h1>
+      </div>
+
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
+        <Sheet>
+          <SheetTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="md:hidden flex items-center gap-2 w-full"
+            >
+              <FilterIcon className="h-4 w-4" />
+              <span>Bộ lọc ({filters.length > 0 ? filters.length : 0})</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-full max-w-xs overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle>Bộ lọc</SheetTitle>
+            </SheetHeader>
+            {renderFilters()}
+            <SheetFooter className="mt-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={resetFiltersAndSorting}
+                disabled={
+                  JSON.stringify(filters) === JSON.stringify(defaultFilters)
+                }
               >
-                <Filter column={header.column} table={table} />
-              </div>
-            ))}
+                Reset bộ lọc
+              </Button>
+              <SheetClose asChild>
+                <Button size="sm">Đóng</Button>
+              </SheetClose>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
+
+        <div className="hidden md:flex md:flex-wrap md:items-center md:gap-2">
+          {renderFilters()}
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8"
-            onClick={() => {
-              setQueryStates({
-                filters: [],
-                sort: [],
-                page: 1,
-              });
-            }}
-            disabled={
-              queryStates.filters.length === 0 && queryStates.sort.length === 0
-            }
-          >
-            <RotateCcw className="mr-1.5 h-4 w-4" />
-            Reset
-          </Button>
-
+        <div className="flex items-center gap-2 flex-shrink-0 w-full md:w-auto justify-end">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="ml-auto h-8">
-                <Columns3Icon className="mr-1.5 h-4 w-4" />
-                View
+              <Button variant="outline" size="sm" className="h-8">
+                <Columns3Icon className="mr-2 h-4 w-4" />
+                Xem cột
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Ẩn/hiện cột</DropdownMenuLabel>
+              <DropdownMenuLabel>Ẩn/Hiện cột</DropdownMenuLabel>
               <DropdownMenuSeparator />
               {table
                 .getAllColumns()
@@ -723,255 +988,224 @@ const HistoryPage: React.FC = () => {
                       onCheckedChange={(value) =>
                         column.toggleVisibility(!!value)
                       }
-                      onSelect={(event) => event.preventDefault()}
                     >
-                      {typeof column.columnDef.header === "string"
-                        ? column.columnDef.header
-                        : column.id}
+                      {typeof column.columnDef.header === "function"
+                        ? column.id
+                        : String(column.columnDef.header ?? column.id)}
                     </DropdownMenuCheckboxItem>
                   );
                 })}
             </DropdownMenuContent>
           </DropdownMenu>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={resetFiltersAndSorting}
+            disabled={
+              JSON.stringify(filters) === JSON.stringify(defaultFilters) &&
+              JSON.stringify(sorting) === JSON.stringify(defaultSorting)
+            }
+            className="h-8 hidden md:flex"
+          >
+            <RotateCcw className="mr-1.5 h-4 w-4" />
+            Reset
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refetch()}
+            disabled={isFetching}
+            className="h-8"
+          >
+            <RotateCcw
+              className={cn("mr-2 h-4 w-4", isFetching && "animate-spin")}
+            />
+            Tải lại
+          </Button>
         </div>
       </div>
 
-      <div className="rounded-md border overflow-auto relative max-h-[calc(100vh-280px)]">
-        <Table className="border-collapse border-spacing-0 w-full">
-          <TableHeader className="sticky top-0 z-10 bg-background shadow-sm">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} className="hover:bg-background">
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead
-                      key={header.id}
-                      colSpan={header.colSpan}
-                      style={{
-                        width: header.column.columnDef.size
-                          ? header.getSize()
-                          : undefined,
-                      }}
-                      className={cn(
-                        "relative h-10 whitespace-nowrap px-2 border-b border-border",
-                        (header.column.id === "isValidFormat" ||
-                          header.column.id === "imageUrl") &&
-                          "text-center",
-                        header.column.getCanResize() &&
-                          "cursor-col-resize select-none"
-                      )}
-                    >
-                      {header.isPlaceholder ? null : header.column.getCanSort() ? (
-                        <Button
-                          variant="ghost"
-                          onClick={header.column.getToggleSortingHandler()}
-                          className={cn(
-                            "px-1 py-1 h-auto w-full flex items-center text-xs font-medium",
-                            header.column.id === "isValidFormat" ||
-                              header.column.id === "imageUrl"
-                              ? "justify-center"
-                              : "justify-between"
-                          )}
-                        >
-                          <span className="truncate">
+      <div className="rounded-md border">
+        <div
+          className={cn(
+            "relative",
+            isFetching && "opacity-60 pointer-events-none"
+          )}
+        >
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    return (
+                      <TableHead
+                        key={header.id}
+                        colSpan={header.colSpan}
+                        style={{
+                          width:
+                            header.getSize() !== 150
+                              ? `${header.getSize()}px`
+                              : undefined,
+                        }}
+                      >
+                        {header.isPlaceholder ? null : (
+                          <div
+                            className={cn(
+                              "flex items-center gap-1 h-8",
+                              header.column.getCanSort() &&
+                                "cursor-pointer select-none"
+                            )}
+                            onClick={header.column.getToggleSortingHandler()}
+                            title={
+                              header.column.getCanSort()
+                                ? header.column.getIsSorted() === "asc"
+                                  ? "Sắp xếp giảm dần"
+                                  : header.column.getIsSorted() === "desc"
+                                  ? "Sắp xếp tăng dần"
+                                  : "Sắp xếp"
+                                : undefined
+                            }
+                          >
                             {flexRender(
                               header.column.columnDef.header,
                               header.getContext()
                             )}
-                          </span>
-                          {{
-                            asc: <ChevronUpIcon className="ms-1 h-3 w-3" />,
-                            desc: <ChevronDownIcon className="ms-1 h-3 w-3" />,
-                          }[header.column.getIsSorted() as string] ?? null}
-                        </Button>
-                      ) : (
-                        <span
-                          className={cn(
-                            "text-xs font-medium px-1 truncate",
-                            (header.column.id === "isValidFormat" ||
-                              header.column.id === "imageUrl") &&
-                              "block text-center"
-                          )}
-                        >
-                          {flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                        </span>
-                      )}
-                      {header.column.getCanResize() && (
-                        <div
-                          onMouseDown={header.getResizeHandler()}
-                          onTouchStart={header.getResizeHandler()}
-                          onDoubleClick={() => header.column.resetSize()}
-                          className={cn(
-                            "absolute top-0 right-0 h-full w-1 cursor-col-resize select-none touch-none",
-                            table.options.columnResizeDirection === "ltr"
-                              ? "right-0"
-                              : "left-0",
-                            header.column.getIsResizing()
-                              ? "bg-primary opacity-50"
-                              : ""
-                          )}
-                        />
-                      )}
-                    </TableHead>
-                  );
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody
-            className={cn(
-              isFetching &&
-                !isLoadingHistory &&
-                "opacity-50 pointer-events-none transition-opacity duration-300"
-            )}
-          >
-            {isLoadingHistory ? (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  Đang tải...
-                </TableCell>
-              </TableRow>
-            ) : isErrorHistory ? (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center text-destructive"
-                >
-                  Lỗi tải dữ liệu: {historyError?.message ?? "Unknown error"}
-                </TableCell>
-              </TableRow>
-            ) : historyData && historyData.rows.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  Không tìm thấy kết quả.
-                </TableCell>
-              </TableRow>
-            ) : (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.original.id}
-                  data-state={row.getIsSelected() && "selected"}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell
-                      key={cell.id}
-                      style={{
-                        width: cell.column.columnDef.size
-                          ? cell.column.getSize()
-                          : undefined,
-                      }}
-                      className={cn(
-                        "text-xs px-2 py-1.5 border-b border-border truncate",
-                        (cell.column.id === "isValidFormat" ||
-                          cell.column.id === "imageUrl") &&
-                          "text-center"
-                      )}
-                    >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
+                            {{
+                              asc: <ChevronUpIcon className="h-4 w-4" />,
+                              desc: <ChevronDownIcon className="h-4 w-4" />,
+                            }[header.column.getIsSorted() as string] ?? null}
+                          </div>
+                        )}
+                      </TableHead>
+                    );
+                  })}
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center"
+                  >
+                    Đang tải dữ liệu lần đầu...
+                  </TableCell>
+                </TableRow>
+              ) : isError ? (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center text-destructive"
+                  >
+                    Lỗi khi tải dữ liệu: {error?.message}
+                  </TableCell>
+                </TableRow>
+              ) : table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && "selected"}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell
+                        key={cell.id}
+                        style={{
+                          width:
+                            cell.column.getSize() !== 150
+                              ? `${cell.column.getSize()}px`
+                              : undefined,
+                        }}
+                        className="p-2 text-xs truncate"
+                      >
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center"
+                  >
+                    Không tìm thấy kết quả nào khớp với bộ lọc.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
+      {data && data.totalRowCount > 0 && renderPaginationControls()}
+    </div>
+  );
+};
+
+const HistoryPageSkeleton: React.FC = () => {
+  return (
+    <div className="container mx-auto py-4 md:px-4 lg:px-6 space-y-4">
+      {/* Header Skeleton */}
+      <div className="flex items-center space-x-4 h-8 mb-4">
+        <Skeleton className="h-8 w-8" /> {/* Sidebar Toggle */}
+        <Skeleton className="h-full w-px" /> {/* Separator */}
+        <Skeleton className="h-7 w-48" /> {/* Title */}
       </div>
 
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <p className="text-muted-foreground text-xs flex-shrink-0">
-          Trang {queryStates.page} / {pageCount} ({totalRowCount} dòng)
-        </p>
-
-        <div className="flex-grow flex justify-center">
-          <Pagination>
-            <PaginationContent>
-              <PaginationItem>
-                <Button
-                  size="icon"
-                  variant="outline"
-                  className="h-8 w-8 disabled:pointer-events-none disabled:opacity-50"
-                  onClick={() => table.previousPage()}
-                  disabled={!table.getCanPreviousPage()}
-                  aria-label="Go to previous page"
-                >
-                  <ChevronLeftIcon size={16} />
-                </Button>
-              </PaginationItem>
-
-              {showLeftEllipsis && (
-                <PaginationItem>
-                  <PaginationEllipsis />
-                </PaginationItem>
-              )}
-
-              {pages
-                .filter((p) => p <= pageCount)
-                .map((page) => {
-                  const isActive = page === queryStates.page;
-                  return (
-                    <PaginationItem key={page}>
-                      <Button
-                        size="icon"
-                        className="h-8 w-8"
-                        variant={isActive ? "outline" : "ghost"}
-                        onClick={() => table.setPageIndex(page - 1)}
-                        aria-current={isActive ? "page" : undefined}
-                      >
-                        {page}
-                      </Button>
-                    </PaginationItem>
-                  );
-                })}
-
-              {showRightEllipsis && (
-                <PaginationItem>
-                  <PaginationEllipsis />
-                </PaginationItem>
-              )}
-
-              <PaginationItem>
-                <Button
-                  size="icon"
-                  variant="outline"
-                  className="h-8 w-8 disabled:pointer-events-none disabled:opacity-50"
-                  onClick={() => table.nextPage()}
-                  disabled={!table.getCanNextPage()}
-                  aria-label="Go to next page"
-                >
-                  <ChevronRightIcon size={16} />
-                </Button>
-              </PaginationItem>
-            </PaginationContent>
-          </Pagination>
+      {/* Controls Skeleton */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
+        {/* Filters Skeleton (Desktop) */}
+        <div className="hidden md:flex md:flex-wrap md:items-center md:gap-2">
+          <Skeleton className="h-16 w-36" />
+          <Skeleton className="h-16 w-36" />
+          <Skeleton className="h-16 w-36" />
         </div>
+        {/* Filter Button Skeleton (Mobile) */}
+        <Skeleton className="h-9 w-full md:hidden" />
 
-        <div className="flex items-center space-x-2 flex-shrink-0">
-          <span className="text-xs text-muted-foreground">Số dòng:</span>
-          <Select
-            value={pagination.pageSize.toString()}
-            onValueChange={(value) => {
-              table.setPageSize(Number(value));
-            }}
-          >
-            <SelectTrigger className="w-fit whitespace-nowrap h-8 text-xs px-2">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {[10, 15, 25, 50, 100].map((pageSizeOption) => (
-                <SelectItem
-                  key={pageSizeOption}
-                  value={pageSizeOption.toString()}
-                >
-                  {pageSizeOption}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        {/* Action Buttons Skeleton */}
+        <div className="flex items-center gap-2 flex-shrink-0 w-full md:w-auto justify-end">
+          <Skeleton className="h-8 w-28" />
+          <Skeleton className="h-8 w-20 hidden md:flex" />
+          <Skeleton className="h-8 w-24" />
+        </div>
+      </div>
+
+      {/* Table Skeleton */}
+      <div className="rounded-md border">
+        <Skeleton className="h-12 w-full" /> {/* Table Header */}
+        <div className="space-y-2 p-2">
+          {[...Array(5)].map((_, i) => (
+            <Skeleton key={i} className="h-10 w-full" /> /* Table Rows */
+          ))}
+        </div>
+      </div>
+
+      {/* Pagination Skeleton */}
+      <div className="flex items-center justify-between gap-2 flex-wrap mt-4 px-1">
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-8 w-[75px]" />
+          <Skeleton className="h-5 w-48" />
+        </div>
+        <div className="flex items-center gap-1">
+          <Skeleton className="h-8 w-8" />
+          <Skeleton className="h-8 w-8" />
+          <Skeleton className="h-8 w-8" />
+          <Skeleton className="h-8 w-8" />
         </div>
       </div>
     </div>
+  );
+};
+
+const HistoryPage: React.FC = () => {
+  return (
+    <Suspense fallback={<HistoryPageSkeleton />}>
+      <HistoryPageContent />
+    </Suspense>
   );
 };
 

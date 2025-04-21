@@ -4,7 +4,6 @@ import {
   History,
   ImageIcon,
 } from "lucide-react";
-import { SidebarUserNav } from "@/components/sidebar-user-nav";
 import {
   Sidebar,
   SidebarContent,
@@ -55,7 +54,6 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent />
       <SidebarFooter>
-        <SidebarUserNav />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

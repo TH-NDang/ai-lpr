@@ -9,21 +9,18 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CheckCircle2 } from "lucide-react";
 import {
-  CheckCircle2,
-} from "lucide-react";
-import {
+  ApiResponse,
   useLicensePlateStore,
 } from "@/lib/store/license-plate-store";
-import {
-  processLicensePlateImage,
-  processLicensePlateFromUrl,
-} from "@/app/(main)/actions";
 
 import { FileUploadTab } from "./lpr/file-upload-tab";
 import { UrlInputTab } from "./lpr/url-input-tab";
 import { DetectionList } from "./lpr/detection-list";
 import { DetectionDetails } from "./lpr/detection-details";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:6000";
 
 export function LicensePlateUpload() {
   const {
@@ -79,17 +76,18 @@ export function LicensePlateUpload() {
     setError(null);
     setResult(null);
 
+    let progressInterval: NodeJS.Timeout | null = null;
     try {
-      const progressInterval = setInterval(() => {
-        setLoadingProgress((prev: number) => {
-          const newProgress = prev + Math.random() * 5 + 2;
-          if (newProgress >= 95) {
-            clearInterval(progressInterval);
-            return 95;
-          }
-          return newProgress;
-        });
-        const currentProgress = loadingProgress;
+      let currentProgress = 10;
+      setLoadingProgress(currentProgress);
+      progressInterval = setInterval(() => {
+        currentProgress += Math.random() * 5 + 2;
+        if (currentProgress >= 95) {
+          currentProgress = 95;
+          if (progressInterval) clearInterval(progressInterval);
+        }
+        setLoadingProgress(currentProgress);
+
         if (currentProgress < 30) {
           setLoadingMessage(`Đang tải lên...`);
         } else if (currentProgress < 70) {
@@ -99,16 +97,37 @@ export function LicensePlateUpload() {
         }
       }, 300);
 
-      let data;
+      let response: Response;
+      let endpoint: string;
+      const fetchOptions: RequestInit = { method: "POST" };
+
       if (inputMethod === "file") {
         setLoadingMessage("Đang gửi yêu cầu xử lý...");
-        data = await processLicensePlateImage(selectedFile!);
+        endpoint = `${API_BASE_URL}/process-image`;
+        const formData = new FormData();
+        formData.append("file", selectedFile!);
+        fetchOptions.body = formData;
       } else {
         setLoadingMessage("Đang gửi yêu cầu URL...");
-        data = await processLicensePlateFromUrl(imageUrl);
+        endpoint = `${API_BASE_URL}/process-image-url`;
+        fetchOptions.headers = { "Content-Type": "application/json" };
+        fetchOptions.body = JSON.stringify({ url: imageUrl });
       }
 
-      clearInterval(progressInterval);
+      response = await fetch(endpoint, fetchOptions);
+
+      if (progressInterval) clearInterval(progressInterval);
+      setLoadingProgress(98);
+      setLoadingMessage("Đang nhận kết quả...");
+
+      const data: ApiResponse = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data?.error || `API Error: ${response.status} ${response.statusText}`
+        );
+      }
+
       setLoadingProgress(100);
       setLoadingMessage("Hoàn tất!");
       setResult(data);
@@ -119,16 +138,21 @@ export function LicensePlateUpload() {
       }
 
       if (!data.detections || data.detections.length === 0) {
-        setError("Không phát hiện được biển số nào trong ảnh.");
+        if (!data.error) {
+          setError("Không phát hiện được biển số nào trong ảnh.");
+        }
       }
     } catch (err) {
+      if (progressInterval) clearInterval(progressInterval);
       console.error("Processing Error:", err);
       const errorMessage =
         err instanceof Error ? err.message : "Lỗi không xác định khi xử lý ảnh.";
       setError(errorMessage);
       setLoadingProgress(0);
+      setResult(null);
     } finally {
       setLoading(false);
+      if (progressInterval) clearInterval(progressInterval);
     }
   };
 
