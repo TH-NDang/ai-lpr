@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect } from "react";
 import {
   Card,
@@ -20,7 +21,7 @@ import { UrlInputTab } from "./lpr/url-input-tab";
 import { DetectionList } from "./lpr/detection-list";
 import { DetectionDetails } from "./lpr/detection-details";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:6000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export function LicensePlateUpload() {
   const {
