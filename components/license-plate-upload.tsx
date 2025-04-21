@@ -21,7 +21,7 @@ import { UrlInputTab } from "./lpr/url-input-tab";
 import { DetectionList } from "./lpr/detection-list";
 import { DetectionDetails } from "./lpr/detection-details";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL!;
 
 export function LicensePlateUpload() {
   const {
@@ -101,6 +101,10 @@ export function LicensePlateUpload() {
       let response: Response;
       let endpoint: string;
       const fetchOptions: RequestInit = { method: "POST" };
+
+      if (!API_BASE_URL) {
+        console.log("Check key:", API_BASE_URL)
+      }
 
       if (inputMethod === "file") {
         setLoadingMessage("Đang gửi yêu cầu xử lý...");
