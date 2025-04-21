@@ -13,6 +13,8 @@ import {
   gte,
   lte,
   count,
+  SQL,
+  lt,
 } from "drizzle-orm";
 import type { ApiResponse } from "@/lib/store/license-plate-store";
 import type {
@@ -22,6 +24,11 @@ import type {
 } from "@tanstack/react-table";
 import type { DateRange } from "react-day-picker";
 
+import {
+  startOfDay,
+  addDays,
+} from "date-fns";
+
 type DetectionInsert = typeof schema.detections.$inferInsert;
 type DetectedPlateResultInsert = typeof schema.detectedPlateResults.$inferInsert;
 type LicensePlateInsert = typeof schema.licensePlates.$inferInsert;
@@ -29,10 +36,6 @@ type DetectionSelect = typeof schema.detections.$inferSelect;
 type DetectedPlateResultSelect = typeof schema.detectedPlateResults.$inferSelect;
 type LicensePlateSelect = typeof schema.licensePlates.$inferSelect;
 
-/**
- * Inserts a detection record and its associated detected plate results
- * within a transaction. Handles finding or creating unique license plates.
- */
 export async function insertDetectionAndResults(
   apiResponse: ApiResponse,
   source: (typeof schema.detectionSourceEnum.enumValues)[number],
@@ -175,6 +178,9 @@ const filterColumnMap: Record<string, any> = {
   provinceName: schema.detectedPlateResults.provinceName,
   isValidFormat: schema.detectedPlateResults.isValidFormat,
   ocrEngine: schema.detectedPlateResults.ocrEngineUsed,
+  typeVehicle: schema.detectedPlateResults.typeVehicle,
+  source: schema.detections.source,
+  processTime: schema.detections.processTimeMs,
 };
 
 const sortColumnMap: Record<string, any> = {
@@ -185,41 +191,58 @@ const sortColumnMap: Record<string, any> = {
   isValidFormat: schema.detectedPlateResults.isValidFormat,
   ocrEngine: schema.detectedPlateResults.ocrEngineUsed,
   normalizedPlate: schema.detectedPlateResults.normalizedPlate,
+  source: schema.detections.source,
+  processTime: schema.detections.processTimeMs,
 };
 
 /**
  * Parses TanStack Table column filters into Drizzle WHERE conditions.
  */
-function parseFiltersToDrizzle(filters: ColumnFiltersState) {
-  const conditions: any[] = [];
+function parseFiltersToDrizzle(filters: ColumnFiltersState): SQL | undefined {
+  const conditions: (SQL | undefined)[] = [];
   for (const filter of filters) {
     const columnId = filter.id;
     const filterValue = filter.value;
+    const column = filterColumnMap[columnId];
+
+    if (!column) continue;
 
     switch (columnId) {
       case "plateNumber":
       case "normalizedPlate":
       case "provinceName":
-      case "ocrEngine":
         if (typeof filterValue === "string" && filterValue.length > 0) {
-          const column = filterColumnMap[columnId];
-          if (column) conditions.push(ilike(column, `%${filterValue}%`));
+          conditions.push(ilike(column, `%${filterValue}%`));
+        }
+        break;
+      case "ocrEngine":
+      case "typeVehicle":
+      case "source":
+        if (typeof filterValue === "string" && filterValue.length > 0) {
+          conditions.push(eq(column, filterValue));
         }
         break;
       case "confidence":
+      case "processTime":
         if (Array.isArray(filterValue) && filterValue.length === 2) {
           const [min, max] = filterValue;
-          const column = filterColumnMap[columnId];
-          if (column) {
-            if (typeof min === "number") conditions.push(gte(column, min / 100));
-            if (typeof max === "number") conditions.push(lte(column, max / 100));
+          const conditionList: (SQL | undefined)[] = [];
+          if (typeof min === "number") {
+            const minValue = columnId === "confidence" ? min / 100 : min;
+            conditionList.push(gte(column, minValue));
+          }
+          if (typeof max === "number") {
+            const maxValue = columnId === "confidence" ? max / 100 : max;
+            conditionList.push(lte(column, maxValue));
+          }
+          if (conditionList.length > 0) {
+            conditions.push(and(...conditionList.filter((c): c is SQL => !!c)));
           }
         }
         break;
       case "isValidFormat":
         if (typeof filterValue === "boolean") {
-          const column = filterColumnMap[columnId];
-          if (column) conditions.push(eq(column, filterValue));
+          conditions.push(eq(column, filterValue));
         }
         break;
       case "date":
@@ -229,29 +252,41 @@ function parseFiltersToDrizzle(filters: ColumnFiltersState) {
           "from" in filterValue &&
           "to" in filterValue &&
           filterValue.from instanceof Date &&
-          filterValue.to instanceof Date
+          (filterValue.to === undefined ||
+            filterValue.to === null ||
+            filterValue.to instanceof Date)
         ) {
           const { from, to } = filterValue as DateRange;
-          const effectiveTo = to ? new Date(to.setHours(23, 59, 59, 999)) : null;
-          const dateConditions = [];
-          if (from)
-            dateConditions.push(gte(schema.detections.detectionTime, from));
-          if (effectiveTo)
-            dateConditions.push(
-              lte(schema.detections.detectionTime, effectiveTo)
-            );
+
+          const effectiveFrom = from ? startOfDay(from) : null;
+          const effectiveToExclusive = to
+            ? startOfDay(addDays(to, 1))
+            : from
+            ? startOfDay(addDays(from, 1))
+            : null;
+
+          console.log(
+            `Date Filter - Effective Range: >= ${effectiveFrom} AND < ${effectiveToExclusive}`
+          );
+
+          const dateConditions: (SQL | undefined)[] = [];
+          if (effectiveFrom) {
+            dateConditions.push(gte(column, effectiveFrom));
+          }
+          if (effectiveToExclusive) {
+            dateConditions.push(lt(column, effectiveToExclusive));
+          }
+
           if (dateConditions.length > 0) {
-            conditions.push(
-              sql`"detectionId" IN (SELECT id FROM ${
-                schema.detections
-              } WHERE ${and(...dateConditions)})`
-            );
+            conditions.push(and(...dateConditions.filter((c): c is SQL => !!c)));
           }
         }
         break;
     }
   }
-  return conditions.length > 0 ? and(...conditions) : undefined;
+  return conditions.length > 0
+    ? and(...conditions.filter((c): c is SQL => !!c))
+    : undefined;
 }
 
 /**
@@ -259,29 +294,21 @@ function parseFiltersToDrizzle(filters: ColumnFiltersState) {
  */
 function parseSortingToDrizzle(sorting: SortingState) {
   if (!sorting || sorting.length === 0) {
-    return [desc(schema.detectedPlateResults.createdAt)];
+    return [desc(schema.detections.detectionTime)];
   }
 
-  const orderBy: any[] = [];
+  const orderBy: SQL[] = [];
   for (const sort of sorting) {
     const columnId = sort.id;
     const direction = sort.desc ? desc : asc;
+    const column = sortColumnMap[columnId];
 
-    if (columnId === "date") {
-      console.warn(
-        "Server-side sorting by date is complex with db.query, falling back to default sort."
-      );
-    } else {
-      const column = sortColumnMap[columnId];
-      if (column) {
-        orderBy.push(direction(column));
-      }
+    if (column) {
+      orderBy.push(direction(column));
     }
   }
 
-  return orderBy.length > 0
-    ? orderBy
-    : [desc(schema.detectedPlateResults.createdAt)];
+  return orderBy.length > 0 ? orderBy : [desc(schema.detections.detectionTime)];
 }
 
 /**
@@ -293,29 +320,55 @@ export async function fetchDetectionHistory(
   filters: ColumnFiltersState
 ): Promise<FetchHistoryResult> {
   try {
+    console.log("Received Filters:", JSON.stringify(filters, null, 2));
     const { pageIndex, pageSize } = pagination;
     const whereCondition = parseFiltersToDrizzle(filters);
     const orderByCondition = parseSortingToDrizzle(sorting);
 
-    const countResult = await db
-      .select({ value: count() })
+    const baseQuery = db
+      .select({ count: count() })
       .from(schema.detectedPlateResults)
+      .leftJoin(
+        schema.detections,
+        eq(schema.detectedPlateResults.detectionId, schema.detections.id)
+      )
+      .leftJoin(
+        schema.licensePlates,
+        eq(schema.detectedPlateResults.licensePlateId, schema.licensePlates.id)
+      )
+      .where(whereCondition);
+
+    const countResult = await baseQuery.execute();
+    const totalRowCount = countResult[0]?.count ?? 0;
+
+    const rows = await db
+      .select({
+        detectedPlateResult: schema.detectedPlateResults,
+        detection: schema.detections,
+        licensePlate: schema.licensePlates,
+      })
+      .from(schema.detectedPlateResults)
+      .leftJoin(
+        schema.detections,
+        eq(schema.detectedPlateResults.detectionId, schema.detections.id)
+      )
+      .leftJoin(
+        schema.licensePlates,
+        eq(schema.detectedPlateResults.licensePlateId, schema.licensePlates.id)
+      )
       .where(whereCondition)
+      .orderBy(...orderByCondition)
+      .limit(pageSize)
+      .offset(pageIndex * pageSize)
       .execute();
-    const totalRowCount = countResult[0]?.value ?? 0;
 
-    const rows = await db.query.detectedPlateResults.findMany({
-      where: whereCondition,
-      orderBy: orderByCondition,
-      limit: pageSize,
-      offset: pageIndex * pageSize,
-      with: {
-        detection: true,
-        licensePlate: true,
-      },
-    });
+    const structuredRows = rows.map((row) => ({
+      ...row.detectedPlateResult,
+      detection: row.detection,
+      licensePlate: row.licensePlate,
+    }));
 
-    return { rows: rows as HistoryQueryResultItem[], totalRowCount };
+    return { rows: structuredRows as HistoryQueryResultItem[], totalRowCount };
   } catch (error) {
     console.error("Error fetching detection history:", error);
     throw new Error("Failed to fetch history data via query function.");

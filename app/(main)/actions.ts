@@ -16,9 +16,8 @@ import type {
 } from "@tanstack/react-table";
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000"; // Replace with your actual API URL
+  process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5000";
 
-// Standard processing endpoint (now uses YOLO + Paddle/Gemini)
 export async function processLicensePlateImage(
   file: File
 ): Promise<ApiResponse> {
@@ -108,7 +107,6 @@ export async function processLicensePlateImage(
   }
 }
 
-// Standard processing from URL (now uses YOLO + Paddle/Gemini)
 export async function processLicensePlateFromUrl(
   url: string
 ): Promise<ApiResponse> {

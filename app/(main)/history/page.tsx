@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useId } from "react";
+import React, { useState, useMemo, useId, useEffect } from "react";
 import {
   type ColumnDef,
   type ColumnFiltersState,
@@ -42,6 +42,8 @@ import {
   ChevronRightIcon,
   Columns3Icon,
   ZoomInIcon,
+  RotateCcw,
+  XIcon,
 } from "lucide-react";
 import {
   Pagination,
@@ -52,9 +54,27 @@ import {
 import { usePagination } from "@/hooks/use-pagination";
 import { cn } from "@/lib/utils";
 import { getHistoryAction, getHistoryFilterOptions } from "../actions";
-import { DateRangeFilter } from "@/components/date-range-filter";
-import { useQuery } from "@tanstack/react-query";
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { CalendarIcon } from "lucide-react";
+import {
+  format,
+  subDays,
+  startOfMonth,
+  endOfMonth,
+  startOfYear,
+  endOfYear,
+  subMonths,
+  subYears,
+} from "date-fns";
+import { type DateRange } from "react-day-picker";
 import type { HistoryQueryResultItem } from "@/lib/db/queries";
+import { useQueryStates, parseAsInteger, parseAsJson } from "nuqs";
+import { useQuery } from "@tanstack/react-query";
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -63,12 +83,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Calendar } from "@/components/ui/calendar";
 import {
-  Dialog,
-  DialogContent,
-  DialogTrigger,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { useDebounce } from "use-debounce";
 
 type HistoryGridRow = HistoryQueryResultItem;
 
@@ -90,6 +111,141 @@ declare module "@tanstack/react-table" {
   }
 }
 
+function DayPickerDateRangeFilter({ column }: { column: Column<any, unknown> }) {
+  const id = useId();
+  const filterValue = column.getFilterValue() as {
+    from?: Date;
+    to?: Date;
+  } | null;
+
+  const [month, setMonth] = useState<Date>(
+    filterValue?.from ?? filterValue?.to ?? new Date()
+  );
+
+  const today = new Date();
+  const presets = {
+    today: { from: today, to: today },
+    yesterday: { from: subDays(today, 1), to: subDays(today, 1) },
+    last7Days: { from: subDays(today, 6), to: today },
+    last30Days: { from: subDays(today, 29), to: today },
+    monthToDate: { from: startOfMonth(today), to: today },
+    lastMonth: {
+      from: startOfMonth(subMonths(today, 1)),
+      to: endOfMonth(subMonths(today, 1)),
+    },
+    yearToDate: { from: startOfYear(today), to: today },
+    lastYear: {
+      from: startOfYear(subYears(today, 1)),
+      to: endOfYear(subYears(today, 1)),
+    },
+  };
+
+  const handleSelect = (range: DateRange | undefined) => {
+    if (!range) {
+      column.setFilterValue(undefined);
+      return;
+    }
+    const newFilterValue = {
+      from: range.from,
+      to: range.to ?? range.from,
+    };
+    column.setFilterValue(newFilterValue);
+  };
+
+  const handlePresetClick = (presetRange: { from: Date; to: Date }) => {
+    column.setFilterValue(presetRange);
+    setMonth(presetRange.to);
+  };
+
+  return (
+    <div className="*:not-first:mt-1 space-y-1">
+      <Label htmlFor={`${id}-trigger`} className="text-xs font-normal">
+        {String(column.columnDef.header ?? column.id)}
+      </Label>
+      <Popover>
+        <PopoverTrigger asChild id={`${id}-trigger`}>
+          <Button
+            variant={"outline"}
+            size="sm"
+            className={cn(
+              "h-8 w-full justify-start text-left font-normal text-xs px-2 pe-8",
+              !filterValue?.from && "text-muted-foreground"
+            )}
+          >
+            <CalendarIcon className="me-1.5 h-3.5 w-3.5 text-muted-foreground/80" />
+            {filterValue?.from ? (
+              filterValue.to ? (
+                <>
+                  {format(filterValue.from, "LLL dd, y")}-
+                  {format(filterValue.to, "LLL dd, y")}
+                </>
+              ) : (
+                format(filterValue.from, "LLL dd, y")
+              )
+            ) : (
+              <span>Chọn ngày...</span>
+            )}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent
+          className="w-auto p-0 flex max-sm:flex-col"
+          align="start"
+        >
+          <div className="relative py-2 max-sm:order-1 max-sm:border-t sm:w-36 sm:border-e">
+            <div className="flex flex-col px-2 space-y-1">
+              {(Object.keys(presets) as Array<keyof typeof presets>).map(
+                (key) => (
+                  <Button
+                    key={key}
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start text-xs h-7 px-1.5 font-normal"
+                    onClick={() => handlePresetClick(presets[key])}
+                  >
+                    {key === "today" && "Hôm nay"}
+                    {key === "yesterday" && "Hôm qua"}
+                    {key === "last7Days" && "7 ngày qua"}
+                    {key === "last30Days" && "30 ngày qua"}
+                    {key === "monthToDate" && "Tháng này"}
+                    {key === "lastMonth" && "Tháng trước"}
+                    {key === "yearToDate" && "Năm nay"}
+                    {key === "lastYear" && "Năm trước"}
+                  </Button>
+                )
+              )}
+              {/* Date Reset Button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start text-xs h-7 px-1.5 font-normal text-destructive hover:text-destructive"
+                onClick={() => {
+                  column.setFilterValue(undefined);
+                  setMonth(new Date()); // Reset calendar view to current month
+                }}
+                disabled={!filterValue}
+              >
+                <XIcon className="mr-1.5 h-3.5 w-3.5" />
+                Xóa bộ lọc ngày
+              </Button>
+            </div>
+          </div>
+          <Calendar
+            initialFocus
+            mode="range"
+            defaultMonth={filterValue?.from}
+            selected={filterValue as DateRange | undefined}
+            onSelect={handleSelect}
+            month={month}
+            onMonthChange={setMonth}
+            numberOfMonths={1}
+            disabled={[{ after: today }]}
+          />
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
 function Filter({
   column,
   table,
@@ -99,6 +255,34 @@ function Filter({
 }) {
   const id = useId();
   const columnFilterValue = column.getFilterValue();
+
+  const isTextFilter =
+    column.columnDef.meta?.filterVariant === "text" ||
+    !column.columnDef.meta?.filterVariant;
+  const [inputValue, setInputValue] = useState<string>(() =>
+    isTextFilter ? (columnFilterValue as string) ?? "" : ""
+  );
+  const [debouncedInputValue] = useDebounce(inputValue, 300);
+
+  // Effect to apply the debounced value to the column filter
+  useEffect(() => {
+    if (isTextFilter && debouncedInputValue !== (columnFilterValue ?? "")) {
+      column.setFilterValue(debouncedInputValue);
+    }
+  }, [debouncedInputValue, columnFilterValue, column, isTextFilter]);
+
+  useEffect(() => {
+    if (
+      isTextFilter &&
+      (columnFilterValue === undefined ||
+        columnFilterValue === null ||
+        columnFilterValue === "")
+    ) {
+      if (inputValue !== "") {
+        setInputValue("");
+      }
+    }
+  }, [columnFilterValue, isTextFilter, inputValue]);
 
   const { filterVariant, selectOptions } = column.columnDef.meta ?? {};
   const columnHeader = React.isValidElement(column.columnDef.header)
@@ -211,14 +395,7 @@ function Filter({
   }
 
   if (filterVariant === "dateRange") {
-    return (
-      <div className="*:not-first:mt-1 space-y-1">
-        <Label htmlFor={`${id}-date-range`} className="text-xs font-normal">
-          {String(column.columnDef.header ?? column.id)}
-        </Label>
-        <DateRangeFilter column={column} />
-      </div>
-    );
+    return <DayPickerDateRangeFilter column={column} />;
   }
 
   const isDateFilter = column.id === "date";
@@ -231,8 +408,8 @@ function Filter({
         <Input
           id={`${id}-input`}
           className="peer ps-8 h-8 text-xs"
-          value={(columnFilterValue ?? "") as string}
-          onChange={(e) => column.setFilterValue(e.target.value)}
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
           placeholder={
             isDateFilter ? "Tìm ngày/giờ..." : `Tìm ${columnHeader}...`
           }
@@ -357,7 +534,7 @@ const getColumns = (
     cell: ({ row }) => row.original.detection?.source ?? "-",
     size: 80,
     enableHiding: true,
-    },
+  },
   {
     accessorKey: "processTime",
     header: "Thời gian xử lý",
@@ -381,19 +558,36 @@ const getColumns = (
 ];
 
 const HistoryPage: React.FC = () => {
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
-  const [sorting, setSorting] = useState<SortingState>([]);
-  const [pagination, setPagination] = useState<PaginationState>({
-    pageIndex: 0,
-    pageSize: 15,
+  const [queryStates, setQueryStates] = useQueryStates({
+    page: parseAsInteger.withDefault(1),
+    size: parseAsInteger.withDefault(15),
+    sort: parseAsJson((v) => v as SortingState).withDefault([]),
+    filters: parseAsJson((v) => v as ColumnFiltersState).withDefault([]),
+    visibility: parseAsJson((v) => v as VisibilityState).withDefault({}),
   });
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+
+  const pagination: PaginationState = useMemo(
+    () => ({
+      pageIndex: queryStates.page - 1,
+      pageSize: queryStates.size,
+    }),
+    [queryStates.page, queryStates.size]
+  );
+  const sorting = queryStates.sort;
+  const columnFilters = queryStates.filters;
+  const columnVisibility = queryStates.visibility;
 
   const historyQuery = useQuery({
     queryKey: ["history", pagination, sorting, columnFilters],
     queryFn: () =>
-      getHistoryAction({ pagination, sorting, filters: columnFilters }),
-    placeholderData: (previousData) => previousData,
+      getHistoryAction({
+        pagination: {
+          pageIndex: queryStates.page - 1,
+          pageSize: queryStates.size,
+        },
+        sorting: queryStates.sort,
+        filters: queryStates.filters,
+      }),
   });
 
   const filterOptionsQuery = useQuery<FilterOptions>({
@@ -407,6 +601,7 @@ const HistoryPage: React.FC = () => {
     isLoading: isLoadingHistory,
     isError: isErrorHistory,
     error: historyError,
+    isFetching,
   } = historyQuery;
   const { data: filterOptions } = filterOptionsQuery;
 
@@ -430,16 +625,40 @@ const HistoryPage: React.FC = () => {
       pagination,
       columnVisibility,
     },
-    onColumnFiltersChange: setColumnFilters,
-    onSortingChange: setSorting,
-    onPaginationChange: setPagination,
-    onColumnVisibilityChange: setColumnVisibility,
+    onColumnFiltersChange: (updater) => {
+      const newState =
+        typeof updater === "function" ? updater(queryStates.filters) : updater;
+      setQueryStates({ filters: newState, page: 1 });
+    },
+    onSortingChange: (updater) => {
+      const newState =
+        typeof updater === "function" ? updater(queryStates.sort) : updater;
+      setQueryStates({ sort: newState });
+    },
+    onPaginationChange: (updater) => {
+      const newState =
+        typeof updater === "function"
+          ? updater({
+              pageIndex: queryStates.page - 1,
+              pageSize: queryStates.size,
+            })
+          : updater;
+      setQueryStates({ page: newState.pageIndex + 1, size: newState.pageSize });
+    },
+    onColumnVisibilityChange: (updater) => {
+      const newState =
+        typeof updater === "function"
+          ? updater(queryStates.visibility)
+          : updater;
+      setQueryStates({ visibility: newState });
+    },
     getCoreRowModel: getCoreRowModel(),
     columnResizeMode: "onChange",
+    meta: {},
   });
 
   const { pages, showLeftEllipsis, showRightEllipsis } = usePagination({
-    currentPage: pagination.pageIndex + 1,
+    currentPage: queryStates.page,
     totalPages: pageCount,
     paginationItemsToDisplay: 5,
   });
@@ -462,7 +681,26 @@ const HistoryPage: React.FC = () => {
             ))}
         </div>
 
-        <div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8"
+            onClick={() => {
+              setQueryStates({
+                filters: [],
+                sort: [],
+                page: 1,
+              });
+            }}
+            disabled={
+              queryStates.filters.length === 0 && queryStates.sort.length === 0
+            }
+          >
+            <RotateCcw className="mr-1.5 h-4 w-4" />
+            Reset
+          </Button>
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="sm" className="ml-auto h-8">
@@ -582,14 +820,20 @@ const HistoryPage: React.FC = () => {
               </TableRow>
             ))}
           </TableHeader>
-          <TableBody>
-            {isLoadingHistory ? ( // Use history loading state
+          <TableBody
+            className={cn(
+              isFetching &&
+                !isLoadingHistory &&
+                "opacity-50 pointer-events-none transition-opacity duration-300"
+            )}
+          >
+            {isLoadingHistory ? (
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-24 text-center">
                   Đang tải...
                 </TableCell>
               </TableRow>
-            ) : isErrorHistory ? ( // Use history error state
+            ) : isErrorHistory ? (
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
@@ -598,7 +842,13 @@ const HistoryPage: React.FC = () => {
                   Lỗi tải dữ liệu: {historyError?.message ?? "Unknown error"}
                 </TableCell>
               </TableRow>
-            ) : table.getRowModel().rows?.length ? (
+            ) : historyData && historyData.rows.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-24 text-center">
+                  Không tìm thấy kết quả.
+                </TableCell>
+              </TableRow>
+            ) : (
               table.getRowModel().rows.map((row) => (
                 <TableRow
                   key={row.original.id}
@@ -624,12 +874,6 @@ const HistoryPage: React.FC = () => {
                   ))}
                 </TableRow>
               ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  Không tìm thấy kết quả.
-                </TableCell>
-              </TableRow>
             )}
           </TableBody>
         </Table>
@@ -637,7 +881,7 @@ const HistoryPage: React.FC = () => {
 
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <p className="text-muted-foreground text-xs flex-shrink-0">
-          Trang {pagination.pageIndex + 1} / {pageCount}({totalRowCount} dòng)
+          Trang {queryStates.page} / {pageCount} ({totalRowCount} dòng)
         </p>
 
         <div className="flex-grow flex justify-center">
@@ -662,22 +906,24 @@ const HistoryPage: React.FC = () => {
                 </PaginationItem>
               )}
 
-              {pages.map((page) => {
-                const isActive = page === pagination.pageIndex + 1;
-                return (
-                  <PaginationItem key={page}>
-                    <Button
-                      size="icon"
-                      className="h-8 w-8"
-                      variant={isActive ? "outline" : "ghost"}
-                      onClick={() => table.setPageIndex(page - 1)}
-                      aria-current={isActive ? "page" : undefined}
-                    >
-                      {page}
-                    </Button>
-                  </PaginationItem>
-                );
-              })}
+              {pages
+                .filter((p) => p <= pageCount)
+                .map((page) => {
+                  const isActive = page === queryStates.page;
+                  return (
+                    <PaginationItem key={page}>
+                      <Button
+                        size="icon"
+                        className="h-8 w-8"
+                        variant={isActive ? "outline" : "ghost"}
+                        onClick={() => table.setPageIndex(page - 1)}
+                        aria-current={isActive ? "page" : undefined}
+                      >
+                        {page}
+                      </Button>
+                    </PaginationItem>
+                  );
+                })}
 
               {showRightEllipsis && (
                 <PaginationItem>

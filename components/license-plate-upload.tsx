@@ -1,6 +1,5 @@
 "use client";
 import { useEffect } from "react";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -8,24 +7,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
-import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
-  Loader2,
-  Upload,
-  AlertCircle,
   CheckCircle2,
-  Link as LinkIcon,
-  Info,
 } from "lucide-react";
 import {
   useLicensePlateStore,
-  translateColor,
 } from "@/lib/store/license-plate-store";
 import {
   processLicensePlateImage,
@@ -127,19 +115,17 @@ export function LicensePlateUpload() {
       setSelectedDetection("main");
 
       if (data.error) {
-        toast.warning(`Thông báo từ API: ${data.error}`);
         setError(data.error);
-      } else if (!data.detections || data.detections.length === 0) {
-        toast.info("Không phát hiện được biển số nào trong ảnh.");
-      } else {
-        toast.success(`Xử lý thành công!`);
+      }
+
+      if (!data.detections || data.detections.length === 0) {
+        setError("Không phát hiện được biển số nào trong ảnh.");
       }
     } catch (err) {
       console.error("Processing Error:", err);
       const errorMessage =
         err instanceof Error ? err.message : "Lỗi không xác định khi xử lý ảnh.";
       setError(errorMessage);
-      toast.error(errorMessage);
       setLoadingProgress(0);
     } finally {
       setLoading(false);
