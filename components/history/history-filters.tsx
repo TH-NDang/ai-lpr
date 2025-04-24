@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import * as React from "react";
 import type { Column, Table } from "@tanstack/react-table";
@@ -19,7 +19,16 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { format, subDays, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subYears } from "date-fns";
+import {
+  format,
+  subDays,
+  startOfMonth,
+  endOfMonth,
+  startOfYear,
+  endOfYear,
+  subMonths,
+  subYears,
+} from "date-fns";
 import { vi } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import type { DateRange } from "react-day-picker";
@@ -30,7 +39,11 @@ export interface FilterProps {
   table: Table<HistoryQueryResultItem>;
 }
 
-const DateRangeFilter = ({ column }: { column: Column<HistoryQueryResultItem, unknown> }) => {
+const DateRangeFilter = ({
+  column,
+}: {
+  column: Column<HistoryQueryResultItem, unknown>;
+}) => {
   const id = React.useId();
   const [month, setMonth] = React.useState<Date>(new Date());
 
@@ -110,7 +123,8 @@ const DateRangeFilter = ({ column }: { column: Column<HistoryQueryResultItem, un
             {filterValue?.from ? (
               filterValue.to ? (
                 <>
-                  {format(filterValue.from, "dd/MM/yyyy")} - {format(filterValue.to, "dd/MM/yyyy")}
+                  {format(filterValue.from, "dd/MM/yyyy")} -{" "}
+                  {format(filterValue.to, "dd/MM/yyyy")}
                 </>
               ) : (
                 format(filterValue.from, "dd/MM/yyyy")
@@ -128,7 +142,10 @@ const DateRangeFilter = ({ column }: { column: Column<HistoryQueryResultItem, un
                 <div className="text-xs text-muted-foreground">
                   {filterValue?.from ? (
                     filterValue.to ? (
-                      <>Từ {format(filterValue.from, "dd/MM/yyyy")} đến {format(filterValue.to, "dd/MM/yyyy")}</>
+                      <>
+                        Từ {format(filterValue.from, "dd/MM/yyyy")} đến{" "}
+                        {format(filterValue.to, "dd/MM/yyyy")}
+                      </>
                     ) : (
                       format(filterValue.from, "dd/MM/yyyy")
                     )
@@ -154,7 +171,11 @@ const DateRangeFilter = ({ column }: { column: Column<HistoryQueryResultItem, un
                 {Object.entries(presets).map(([key, value]) => (
                   <Button
                     key={key}
-                    variant={JSON.stringify(filterValue) === JSON.stringify(value) ? "secondary" : "ghost"}
+                    variant={
+                      JSON.stringify(filterValue) === JSON.stringify(value)
+                        ? "secondary"
+                        : "ghost"
+                    }
                     size="sm"
                     className="h-8 justify-start text-left text-xs font-normal"
                     onClick={() => handlePresetClick(value)}
@@ -194,14 +215,18 @@ const DateRangeFilter = ({ column }: { column: Column<HistoryQueryResultItem, un
       </Popover>
     </div>
   );
-}
+};
 
 export const Filter = ({ column, table }: FilterProps) => {
   const id = React.useId();
   const firstValue = table
     .getPreFilteredRowModel()
     .flatRows[0]?.getValue(column.id);
-  const filterVariant = column.columnDef.meta?.filterVariant;
+  const meta = column.columnDef.meta as {
+    filterVariant?: string;
+    selectOptions?: string[];
+  };
+  const filterVariant = meta?.filterVariant;
   const columnFilterValue = column.getFilterValue();
 
   const sortedUniqueValues = React.useMemo(() => {
@@ -266,7 +291,8 @@ export const Filter = ({ column, table }: FilterProps) => {
       <div className="space-y-1.5">
         <Label htmlFor={id} className="text-xs font-normal">
           {String(column.columnDef.header ?? column.id)}
-        </Label>          <Select
+        </Label>{" "}
+        <Select
           value={(columnFilterValue ?? "all").toString()}
           onValueChange={(value) =>
             column.setFilterValue(value === "all" ? undefined : value === "true")
@@ -287,7 +313,7 @@ export const Filter = ({ column, table }: FilterProps) => {
 
   if (filterVariant === "selectString") {
     const validOptions = (
-      column.columnDef.meta?.selectOptions ?? sortedUniqueValues
+      meta?.selectOptions ?? (sortedUniqueValues as string[])
     ).filter((opt) => opt !== "");
 
     return (
@@ -348,4 +374,4 @@ export const Filter = ({ column, table }: FilterProps) => {
       </div>
     </div>
   );
-}
+};

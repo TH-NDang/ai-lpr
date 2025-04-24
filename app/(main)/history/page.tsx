@@ -189,8 +189,8 @@ export default function HistoryPage(): React.JSX.Element {
         <div className="flex flex-wrap gap-2">
           {" "}
           {table.getAllColumns().map((column) => {
-            // Chỉ hiện filter cho các cột có meta.filterVariant
-            if (!column.columnDef.meta?.filterVariant) return null;
+            const meta = column.columnDef.meta as { filterVariant?: string };
+            if (!meta?.filterVariant) return null;
 
             return (
               <div
