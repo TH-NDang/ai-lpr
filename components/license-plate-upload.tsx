@@ -22,8 +22,9 @@ import { FileUploadTab } from "./lpr/file-upload-tab";
 import { UrlInputTab } from "./lpr/url-input-tab";
 import { DetectionList } from "./lpr/detection-list";
 import { DetectionDetails } from "./lpr/detection-details";
+import { env } from "@/env";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL!;
+const API_BASE_URL = env.NEXT_PUBLIC_API_URL!;
 
 interface ProcessImageResponse {
   detections: any[];

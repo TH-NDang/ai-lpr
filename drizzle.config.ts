@@ -1,9 +1,10 @@
 import type { Config } from "drizzle-kit";
 import * as dotenv from "dotenv";
+import { env } from "./env";
 
 dotenv.config({ path: ".env" });
 
-if (!process.env.DATABASE_URL) {
+if (!env.DATABASE_URL) {
   throw new Error("DATABASE_URL environment variable is required");
 }
 
@@ -12,7 +13,7 @@ export default {
   out: "./lib/db/migrations",
   dialect: "postgresql",
   dbCredentials: {
-    url: process.env.DATABASE_URL,
+    url: env.DATABASE_URL,
   },
   verbose: true,
   strict: true,

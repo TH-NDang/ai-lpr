@@ -23,8 +23,9 @@ import { getColumns } from "../../../components/history/columns";
 import type { HistoryQueryResultItem } from "@/lib/db/queries";
 import { cn } from "@/lib/utils";
 import { RefreshCw, RotateCcw } from "lucide-react";
+import { env } from "@/env";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL!;
+const API_BASE_URL = env.NEXT_PUBLIC_API_URL!;
 
 interface ApiHistoryResponse {
   rows: HistoryQueryResultItem[];

@@ -1,11 +1,12 @@
 import { createAuthClient } from "better-auth/react";
 import { oneTapClient, multiSessionClient } from "better-auth/client/plugins";
+import { env } from "@/env";
 
 export const authClient = createAuthClient({
-  baseURL: process.env.NEXT_PUBLIC_APP_URL,
+  baseURL: env.NEXT_PUBLIC_BETTER_AUTH_URL,
   plugins: [
     oneTapClient({
-      clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
+      clientId: env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
       // Optional client configuration:
       autoSelect: false,
       cancelOnTapOutside: true,

@@ -7,13 +7,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { env } from "@/env";
 
 const EnvPage = () => {
   const clientEnv = {
-    DATABASE_URL: process.env.DATABASE_URL,
-    GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
-    NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+    NEXT_PUBLIC_API_URL: env.NEXT_PUBLIC_API_URL,
+    NEXT_PUBLIC_DB_CHAT_API: env.NEXT_PUBLIC_DB_CHAT_API,
   };
 
   return (

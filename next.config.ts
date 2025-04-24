@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { env } from "./env";
 
 const nextConfig: NextConfig = {
   experimental: {
@@ -13,15 +14,17 @@ const nextConfig: NextConfig = {
     ],
   },
   async rewrites() {
-    if (!process.env.API_DB_CHAT_API_URL) {
-      console.warn("API_DB_CHAT_API_URL environment variable is not defined");
+    if (!env.NEXT_PUBLIC_DB_CHAT_API) {
+      console.warn(
+        "NEXT_PUBLIC_DB_CHAT_API environment variable is not defined"
+      );
       return [];
     }
 
     return [
       {
         source: "/api/adk/:path*",
-        destination: process.env.API_DB_CHAT_API_URL,
+        destination: env.NEXT_PUBLIC_DB_CHAT_API,
       },
     ];
   },
