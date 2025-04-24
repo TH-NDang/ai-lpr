@@ -26,6 +26,6 @@ export const env = createEnv({
     NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
   },
 
-  skipValidation: !!process.env.SKIP_ENV_VALIDATION,
+  skipValidation: true,
   emptyStringAsUndefined: true,
 });
