@@ -13,10 +13,15 @@ const nextConfig: NextConfig = {
     ],
   },
   async rewrites() {
+    if (!process.env.API_DB_CHAT_API_URL) {
+      console.warn("API_DB_CHAT_API_URL environment variable is not defined");
+      return [];
+    }
+
     return [
       {
         source: "/api/adk/:path*",
-        destination: process.env.API_DB_CHAT_API_URL!,
+        destination: process.env.API_DB_CHAT_API_URL,
       },
     ];
   },
