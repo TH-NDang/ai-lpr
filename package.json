@@ -90,7 +90,7 @@
     "react": "^19.1.0",
     "react-aria-components": "^1.8.0",
     "react-data-grid": "7.0.0-beta.48",
-    "react-day-picker": "8.10.1",
+    "react-day-picker": "^9.6.7",
     "react-dom": "^19.1.0",
     "react-markdown": "^10.1.0",
     "react-resizable-panels": "^2.1.7",
@@ -123,6 +123,5 @@
     "tsx": "^4.19.3",
     "turbo": "^2.4.4",
     "typescript": "^5.8.2"
-  },
-  "packageManager": "pnpm@10.8.0+sha512.0e82714d1b5b43c74610193cb20734897c1d00de89d0e18420aebc5977fa13d780a9cb05734624e81ebd81cc876cd464794850641c48b9544326b5622ca29971"
+  }
 }

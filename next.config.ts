@@ -1,4 +1,4 @@
-import type { NextConfig } from 'next'
+import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   experimental: {
@@ -12,6 +12,14 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-}
+  async rewrites() {
+    return [
+      {
+        source: "/api/adk/:path*",
+        destination: process.env.API_DB_CHAT_API_URL!,
+      },
+    ];
+  },
+};
 
-export default nextConfig
+export default nextConfig;
